@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin.js";
+import { supabaseAdmin } from "../_lib/supabase-admin";
 
 // Admin-only: manage services and the barber_services matrix.
 // This is a single-shop template, so there is one locations row and

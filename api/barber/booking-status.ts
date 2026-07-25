@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin.js";
+import { supabaseAdmin } from "../_lib/supabase-admin";
 
 // Mark a past confirmed booking as "completed" or "no_show".
 // Feeds the stats page's no-show rate and completed-revenue numbers.

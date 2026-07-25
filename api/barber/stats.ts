@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin.js";
+import { supabaseAdmin } from "../_lib/supabase-admin";
 
 // Aggregated stats for the stats page.
 //

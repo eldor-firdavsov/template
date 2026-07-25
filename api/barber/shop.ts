@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin.js";
+import { supabaseAdmin } from "../_lib/supabase-admin";
 
 // Admin-only: read and update the single locations row that represents the shop.
 // (Single-shop template: there is exactly one active row, never inserted from

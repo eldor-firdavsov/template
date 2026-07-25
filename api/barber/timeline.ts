@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin.js";
+import { supabaseAdmin } from "../_lib/supabase-admin";
 
 // Day timeline for a barber — bookings and free slots
 // GET /api/barber/timeline?barber_id=...&date=YYYY-MM-DD
