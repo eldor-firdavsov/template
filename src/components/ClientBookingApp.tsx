@@ -10,6 +10,8 @@ import type { Barber, Service } from "../lib/types";
 import { uz } from "../lib/uz";
 import { supabase } from "../lib/supabase";
 
+import { Scissors } from "lucide-react";
+
 export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) {
   const {
     state,
@@ -115,12 +117,7 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
             <div className="flex items-center gap-3">
               {/* Scissors icon */}
               <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shadow-md shadow-accent/20">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
-                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
-                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-                </svg>
+                <Scissors className="w-5 h-5 text-white" />
               </div>
               <div>
                 <div className="text-base font-extrabold tracking-tight text-primary">

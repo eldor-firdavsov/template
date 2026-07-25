@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import type { Service } from "../lib/types";
 import { uz } from "../lib/uz";
 import { Skeleton } from "./ui/Skeleton";
+import { MapPin, Clock, ChevronRight, Sparkles } from "lucide-react";
 
 interface Props {
   onSelect: (service: Service) => void;
@@ -79,10 +80,7 @@ export function StepService({ onSelect }: Props) {
       {shopInfo && (
         <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-accent/6 border border-accent/15 animate-slide-up">
           <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+            <MapPin className="w-4 h-4 text-accent" />
           </div>
           <div className="min-w-0">
             <div className="text-xs font-bold text-accent uppercase tracking-wider">{shopInfo.name}</div>
@@ -125,16 +123,15 @@ export function StepService({ onSelect }: Props) {
                       <span className="font-semibold text-sm text-primary">{service.name}</span>
                       {/* Smart Defaults badge */}
                       {isPopular && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-accent text-white">
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-accent text-white flex items-center gap-1">
+                          <Sparkles size={10} />
                           Mashhur
                         </span>
                       )}
                     </div>
                     {/* Contrast Effect: duration provides context for the price */}
                     <div className="text-xs text-muted mt-1 flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <Clock className="w-3.5 h-3.5" />
                       {service.duration_minutes} daqiqa
                     </div>
                   </div>
@@ -142,9 +139,7 @@ export function StepService({ onSelect }: Props) {
                     <div className={`text-base font-extrabold ${isPopular ? "text-accent" : "text-primary"}`}>
                       {formatPrice(service.price)}
                     </div>
-                    <svg className="w-4 h-4 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
+                    <ChevronRight className="w-4 h-4 text-muted/40" />
                   </div>
                 </button>
               );

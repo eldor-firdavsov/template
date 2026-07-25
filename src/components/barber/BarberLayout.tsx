@@ -270,9 +270,9 @@ export const BarberLayout: React.FC = () => {
         <Outlet />
       </main>
 
-      {/* ── Mobile Bottom Navigation: Only 4 tabs ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border/50 z-20">
-        <div className="flex items-center justify-around py-1.5 px-2">
+      {/* ── Mobile Bottom Navigation: Floating iOS 26 Capsule Bar ── */}
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-30 ios-glass rounded-3xl border border-white/60 shadow-lg shadow-black/10">
+        <div className="flex items-center justify-around py-2 px-3">
           {primaryTabs.map((item) => {
             const Icon = item.icon;
             const isTimetable = item.label === "Jadval";
@@ -281,35 +281,35 @@ export const BarberLayout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl text-[10px] font-semibold transition-all relative ${
-                    isActive ? "text-accent" : "text-muted"
+                  `flex flex-col items-center gap-0.5 py-1 px-3.5 rounded-2xl text-[10px] font-bold transition-all ios-press relative ${
+                    isActive ? "text-accent bg-accent/10 shadow-sm" : "text-muted hover:text-primary"
                   }`
                 }
               >
                 <div className="relative">
-                  <Icon size={22} />
+                  <Icon size={20} />
                   {isTimetable && (isAdmin ? shopPendingCount > 0 : personalPendingCount > 0) && (
-                    <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-accent text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                    <span className="absolute -top-1 -right-2 w-4 h-4 bg-accent text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-sm">
                       {isAdmin ? shopPendingCount : personalPendingCount}
                     </span>
                   )}
                 </div>
-                <span>{item.label}</span>
+                <span className="tracking-tight">{item.label}</span>
               </NavLink>
             );
           })}
 
-          {/* "More" tab — opens a sheet with the rest */}
+          {/* "More" tab — opens iOS bottom sheet */}
           <button
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl text-[10px] font-semibold transition-all ${
-              isMoreActive ? "text-accent" : "text-muted"
+            className={`flex flex-col items-center gap-0.5 py-1 px-3.5 rounded-2xl text-[10px] font-bold transition-all ios-press ${
+              isMoreActive ? "text-accent bg-accent/10 shadow-sm" : "text-muted hover:text-primary"
             }`}
           >
             <div className="relative">
-              <ChevronDown size={22} className={`transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+              <ChevronDown size={20} className={`transition-transform duration-200 ${moreOpen ? "rotate-180" : ""}`} />
             </div>
-            <span>Ko'proq</span>
+            <span className="tracking-tight">Ko'proq</span>
           </button>
         </div>
       </nav>
