@@ -1,117 +1,51 @@
-import { useState } from "react";
-import { useBookingFlow } from "./hooks/useBookingFlow";
-import { StepService } from "./components/StepService";
-import { StepBarber } from "./components/StepBarber";
-import { StepTime } from "./components/StepTime";
-import { StepConfirm } from "./components/StepConfirm";
-import { StepSuccess } from "./components/StepSuccess";
-import { MyBookings } from "./components/MyBookings";
-import type { Barber } from "./lib/types";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ClientBookingApp } from "./components/ClientBookingApp";
+import { BarberAuthProvider } from "./context/BarberAuthContext";
+import { BarberLayout } from "./components/barber/BarberLayout";
+import { BarberLogin } from "./pages/barber/BarberLogin";
+import { BarberRegister } from "./pages/barber/BarberRegister";
+import { BarberOnboarding } from "./pages/barber/BarberOnboarding";
+import { BarberTimetable } from "./pages/barber/BarberTimetable";
+import { BarberClients } from "./pages/barber/BarberClients";
+import { BarberSchedule } from "./pages/barber/BarberSchedule";
+import { BarberServices } from "./pages/barber/BarberServices";
+import { BarberShop } from "./pages/barber/BarberShop";
+import { BarberStats } from "./pages/barber/BarberStats";
+import { BarberSettings } from "./pages/barber/BarberSettings";
+import { BarberTeam } from "./pages/barber/BarberTeam";
 
 export default function App() {
-  const {
-    state,
-    selectService,
-    selectBarber,
-    selectTime,
-    confirmBooking,
-    goToStep,
-    reset,
-  } = useBookingFlow();
-  const [assignedBarber, setAssignedBarber] = useState<Barber | null>(null);
-
-  const handleBack = () => {
-    const backMap: Record<string, string> = {
-      barber: "service",
-      time: "barber",
-      confirm: "time",
-    };
-    const prev = backMap[state.step];
-    if (prev) goToStep(prev as "service" | "barber" | "time");
-  };
-
-  const handleBookAnother = () => {
-    reset();
-    setAssignedBarber(null);
-  };
-
   return (
-    <div className="min-h-screen bg-bg">
-      <div className="max-w-md mx-auto px-4 py-4 pb-10">
-        {/* Top nav: show "My Bookings" on most steps */}
-        {state.step !== "success" && state.step !== "bookings" && (
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={() => goToStep("bookings")}
-              className="text-sm text-accent px-3 py-1 rounded-lg hover:bg-accent/10 transition-colors"
-            >
-              My Bookings
-            </button>
-          </div>
-        )}
+    <BrowserRouter>
+      <BarberAuthProvider>
+        <Routes>
+          {/* Client Pages (Public, No Login) */}
+          <Route path="/" element={<ClientBookingApp />} />
+          <Route path="/book" element={<ClientBookingApp />} />
+          <Route path="/my-bookings" element={<ClientBookingApp initialStep="bookings" />} />
 
-        {state.step === "service" && (
-          <StepService onSelect={selectService} />
-        )}
+          {/* Barber Auth Routes */}
+          <Route path="/barber/login" element={<BarberLogin />} />
+          <Route path="/barber/register" element={<BarberRegister />} />
+          <Route path="/barber/onboarding" element={<BarberOnboarding />} />
 
-        {state.step === "barber" && state.selectedService && (
-          <StepBarber
-            service={state.selectedService}
-            onSelect={(barber) => {
-              setAssignedBarber(null);
-              selectBarber(barber);
-            }}
-            onBack={handleBack}
-          />
-        )}
+          {/* Barber Portal Authenticated Routes */}
+          <Route path="/barber" element={<BarberLayout />}>
+            <Route index element={<Navigate to="/barber/timetable" replace />} />
+            <Route path="timetable" element={<BarberTimetable />} />
+            <Route path="clients" element={<BarberClients />} />
+            <Route path="schedule" element={<BarberSchedule />} />
+            <Route path="services" element={<BarberServices />} />
+            <Route path="shop" element={<BarberShop />} />
+            <Route path="team" element={<BarberTeam />} />
+            <Route path="stats" element={<BarberStats />} />
+            <Route path="settings" element={<BarberSettings />} />
+          </Route>
 
-        {state.step === "time" && state.selectedService && (
-          <StepTime
-            service={state.selectedService}
-            barber={state.selectedBarber}
-            onSelect={(date, time) => selectTime(date, time)}
-            onBack={handleBack}
-          />
-        )}
-
-        {state.step === "confirm" &&
-          state.selectedService &&
-          state.selectedDate &&
-          state.selectedTime && (
-            <StepConfirm
-              service={state.selectedService}
-              barber={state.selectedBarber}
-              assignedBarber={assignedBarber}
-              date={state.selectedDate}
-              time={state.selectedTime}
-              onConfirm={(b) => {
-                setAssignedBarber(b);
-                confirmBooking(b);
-              }}
-              onBack={handleBack}
-            />
-          )}
-
-        {state.step === "success" &&
-          state.selectedService &&
-          assignedBarber && (
-            <StepSuccess
-              service={state.selectedService}
-              barber={assignedBarber}
-              date={state.selectedDate}
-              time={state.selectedTime}
-              onBookAnother={handleBookAnother}
-              onMyBookings={() => goToStep("bookings")}
-            />
-          )}
-
-        {state.step === "bookings" && (
-          <MyBookings
-            onBack={handleBookAnother}
-            onBookAnother={handleBookAnother}
-          />
-        )}
-      </div>
-    </div>
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BarberAuthProvider>
+    </BrowserRouter>
   );
 }

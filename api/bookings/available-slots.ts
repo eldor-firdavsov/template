@@ -28,7 +28,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (barber_id) {
     barberIds = [barber_id];
   } else {
-    // "Any available barber" — find all active barbers offering this service
     const { data: bsData } = await supabaseAdmin
       .from("barber_services")
       .select("barber_id")
@@ -39,7 +38,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     barberIds = bsData.map((bs) => bs.barber_id);
 
-    // Filter to active barbers
     const { data: activeBarbers } = await supabaseAdmin
       .from("barbers")
       .select("id")
@@ -69,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from("bookings")
       .select("barber_id, starts_at, ends_at, status")
       .in("barber_id", barberIds)
-      .eq("status", "confirmed")
+      .in("status", ["confirmed", "pending"])
       .gte("starts_at", from_date + "T00:00:00")
       .lte("starts_at", to_date + "T23:59:59"),
     supabaseAdmin
@@ -79,10 +77,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq("service_id", service_id),
   ]);
 
+  // Fixed 30-minute slot granularity
+  const SLOT_GRANULARITY = 30;
+
   // Compute slots per barber
   const mergedSlots = new Map<string, string[]>();
-  const fromDate = new Date(from_date + "T00:00:00Z");
-  const toDate = new Date(to_date + "T00:00:00Z");
+  const fromDateObj = new Date(from_date + "T00:00:00Z");
+  const toDateObj = new Date(to_date + "T00:00:00Z");
 
   for (const bid of barberIds) {
     const bsData = bsResult.data ?? [];
@@ -91,14 +92,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     const duration = match?.custom_duration_minutes ?? service.duration_minutes;
 
-    const barberWH = (whResult.data ?? []).filter((wh) => wh.barber_id === bid);
+    let barberWH = (whResult.data ?? []).filter((wh) => wh.barber_id === bid);
+    if (barberWH.length === 0) {
+      // Default working hours: Mon–Sat (1..6), 09:00 - 20:00
+      barberWH = [1, 2, 3, 4, 5, 6].map((w) => ({
+        barber_id: bid,
+        weekday: w,
+        start_time: "09:00:00",
+        end_time: "20:00:00",
+      }));
+    }
     const barberTO = (toResult.data ?? []).filter((to) => to.barber_id === bid);
     const barberBookings = (bookingResult.data ?? []).filter(
       (b) => b.barber_id === bid,
     );
 
-    const current = new Date(fromDate);
-    while (current <= toDate) {
+    const current = new Date(fromDateObj);
+    while (current <= toDateObj) {
       const weekday = current.getUTCDay();
       const dateStr = current.toISOString().substring(0, 10);
 
@@ -125,7 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // Subtract existing bookings
+      // Subtract existing confirmed bookings
       if (availableRanges.length > 0) {
         const dayBookings = barberBookings.filter(
           (b) => b.starts_at.substring(0, 10) === dateStr,
@@ -138,9 +148,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // Generate slots
+      // Generate slots using fixed 30-minute granularity
       for (const range of availableRanges) {
-        let slotStart = timeToMinutes(range.start);
+        let slotStart = Math.ceil(timeToMinutes(range.start) / SLOT_GRANULARITY) * SLOT_GRANULARITY;
         const rangeEnd = timeToMinutes(range.end);
 
         while (slotStart + duration <= rangeEnd) {
@@ -150,7 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (!slots.includes(slotStr)) {
             slots.push(slotStr);
           }
-          slotStart += 15; // 15-minute granularity
+          slotStart += SLOT_GRANULARITY;
         }
       }
 

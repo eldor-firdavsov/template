@@ -1,27 +1,28 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
 :root {
-  --color-bg: #ffffff;
-  --color-surface: #f5f5f5;
-  --color-primary: #1a1a1a;
-  --color-accent: #c8a97e;
-  --color-accent-hover: #b8996e;
-  --color-muted: #6b7280;
-  --color-border: #e5e7eb;
-  --color-danger: #ef4444;
-}
+  /* Clean, smooth & refined Champagne Gold palette */
+  --color-bg: #f8fafc;
+  --color-surface: #f1f5f9;
+  --color-card: #ffffff;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0a0a0a;
-    --color-surface: #1a1a1a;
-    --color-primary: #ffffff;
-    --color-accent: #c8a97e;
-    --color-accent-hover: #d4b98e;
-    --color-muted: #9ca3af;
-    --color-border: #2a2a2a;
-    --color-danger: #f87171;
-  }
+  /* Deep slate primary text — ultra-clear readability */
+  --color-primary: #0f172a;
+  --color-accent: #c59b27;        /* Refined Champagne Gold — tasteful, clean & subtle */
+  --color-accent-hover: #b0871d;
+
+  /* Muted and Border */
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+
+  /* Real semantic colors */
+  --color-danger: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
 }
 
 html,
@@ -33,20 +34,179 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-color: var(--color-bg);
   color: var(--color-primary);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @theme {
   --color-bg: var(--color-bg);
   --color-surface: var(--color-surface);
+  --color-card: var(--color-card);
   --color-primary: var(--color-primary);
   --color-accent: var(--color-accent);
   --color-accent-hover: var(--color-accent-hover);
   --color-muted: var(--color-muted);
   --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
   --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
 }
+
+/* Hide scrollbars */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* iOS Liquid Glass & HIG Utilities */
+.ios-glass {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.ios-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+}
+
+.ios-press {
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms ease;
+}
+.ios-press:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/*
+  White-opacity overrides for components that previously used dark theme.
+  Maps white opacities → charcoal equivalents on the new warm bg.
+*/
+.border-white\/5  { border-color: rgba(24, 24, 27, 0.04) !important; }
+.border-white\/10 { border-color: rgba(24, 24, 27, 0.08) !important; }
+.border-white\/20 { border-color: rgba(24, 24, 27, 0.15) !important; }
+.bg-white\/5  { background-color: rgba(24, 24, 27, 0.03) !important; }
+.bg-white\/10 { background-color: rgba(24, 24, 27, 0.06) !important; }
+.bg-white\/20 { background-color: rgba(24, 24, 27, 0.10) !important; }
+.hover\:bg-white\/10:hover  { background-color: rgba(24, 24, 27, 0.06) !important; }
+.hover\:bg-white\/20:hover  { background-color: rgba(24, 24, 27, 0.10) !important; }
+.hover\:border-white\/20:hover { border-color: rgba(24, 24, 27, 0.15) !important; }
+
+/* ─── Animations ──────────────────────────────────────────────────────── */
+
+@utility animate-fade-in {
+  animation: fade-in 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@utility animate-slide-up {
+  animation: slide-up 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@utility animate-slide-in-right {
+  animation: slide-in-right 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@utility animate-pulse-highlight {
+  animation: pulse-highlight 2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@utility animate-draw-check {
+  animation: draw-check 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@utility animate-bounce-in {
+  animation: bounce-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@utility animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+}
+@utility animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+@utility animate-scale-in {
+  animation: scale-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes bounce-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes pulse-highlight {
+  0%   { box-shadow: 0 0 0 0 rgba(197, 155, 39, 0.35); }
+  70%  { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes draw-check {
+  from { stroke-dashoffset: 100; opacity: 0; }
+  to   { stroke-dashoffset: 0;   opacity: 1; }
+}
+
+/* Scarcity badge pulse */
+@keyframes urgency-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3); }
+  50%       { box-shadow: 0 0 0 4px transparent; }
+}
+@utility animate-urgency {
+  animation: urgency-pulse 1.8s ease-in-out infinite;
+}
+
+/* Progress bar fill */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+@utility animate-progress {
+  animation: progress-fill 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Confetti / celebration pop */
+@keyframes celebrate {
+  0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@utility animate-celebrate {
+  animation: celebrate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

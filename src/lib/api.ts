@@ -49,10 +49,12 @@ export interface CreateBookingPayload {
   barber_id: string | null;
   starts_at: string;
   client_id: string;
+  client_note?: string;
 }
 
 export interface CreateBookingResult {
   booking_id: string;
+  status: "confirmed";
   barber: Barber;
 }
 

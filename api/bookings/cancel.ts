@@ -26,16 +26,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: "Not your booking" });
   }
 
-  if (booking.status !== "confirmed") {
+  // Only confirmed bookings can be cancelled, with a 1-hour window
+  if (booking.status === "confirmed") {
+    const startsAt = new Date(booking.starts_at);
+    const now = new Date();
+    const oneHourMs = 60 * 60 * 1000;
+    if (startsAt.getTime() - now.getTime() <= oneHourMs) {
+      return res.status(400).json({ error: "Cancellation window has passed (must be 1+ hour before appointment)" });
+    }
+  } else {
     return res.status(400).json({ error: "Booking is not in a cancellable state" });
-  }
-
-  // Check 1-hour cancellation window
-  const startsAt = new Date(booking.starts_at);
-  const now = new Date();
-  const oneHourMs = 60 * 60 * 1000;
-  if (startsAt.getTime() - now.getTime() <= oneHourMs) {
-    return res.status(400).json({ error: "Cancellation window has passed (must be 1+ hour before appointment)" });
   }
 
   // Cancel the booking
@@ -51,8 +51,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (cancelErr) {
     return res.status(500).json({ error: "Failed to cancel booking" });
   }
-
-  // TODO: Notify the barber via the barber bot when it exists
 
   return res.json({ success: true });
 }

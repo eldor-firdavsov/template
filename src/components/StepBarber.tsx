@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Barber, Service } from "../lib/types";
+import { uz } from "../lib/uz";
+import { Skeleton } from "./ui/Skeleton";
 
 interface Props {
   service: Service;
@@ -11,6 +13,7 @@ interface Props {
 export function StepBarber({ service, onSelect, onBack }: Props) {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -25,7 +28,6 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
       }
 
       const barberIds = bsData.map((bs) => bs.barber_id);
-
       const { data: barberData } = await supabase
         .from("barbers")
         .select("*")
@@ -33,57 +35,72 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
         .eq("is_active", true)
         .order("sort_order");
 
-      if (barberData) {
-        setBarbers(barberData as Barber[]);
-      }
+      if (barberData) setBarbers(barberData as Barber[]);
       setLoading(false);
     }
     load();
   }, [service.id]);
 
+  // IKEA Effect: handle selection with a brief animation delay before navigating
+  const handleSelect = (barber: Barber | null) => {
+    const id = barber?.id ?? "any";
+    setSelected(id);
+    setTimeout(() => onSelect(barber), 180);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted">Loading barbers...</div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-lg" />
+          <div>
+            <Skeleton className="w-40 h-6 mb-1" />
+            <Skeleton className="w-24 h-4" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="w-full h-36 rounded-2xl" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 rounded-lg hover:bg-surface active:scale-95 transition-all"
+          className="p-2 -ml-2 rounded-xl hover:bg-surface active:scale-95 transition-all"
+          aria-label={uz.actions.back}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div>
-          <h2 className="text-xl font-semibold mb-1">Choose a Barber</h2>
+          {/* IKEA Effect: ownership language — "Ustangizni" = "Your barber" */}
+          <h2 className="text-xl font-extrabold mb-0.5 tracking-tight">Ustangizni tanlang</h2>
           <p className="text-sm text-muted">{service.name}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        {/* "Any barber" card — shown first as default recommendation */}
         <button
-          onClick={() => onSelect(null)}
-          className="flex flex-col items-center justify-center p-4 rounded-xl bg-accent/10 border-2 border-accent hover:bg-accent/20 active:scale-[0.98] transition-all"
+          onClick={() => handleSelect(null)}
+          className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all ios-press relative overflow-hidden ${
+            selected === "any"
+              ? "bg-accent text-white border-accent shadow-lg shadow-accent/20 scale-[0.97]"
+              : "bg-accent/6 border-accent/25 hover:bg-accent/12 hover:border-accent/40 shadow-sm"
+          }`}
         >
-          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mb-2">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 shadow-sm ${
+            selected === "any" ? "bg-white/20" : "bg-accent/15"
+          }`}>
             <svg
-              className="w-8 h-8 text-accent"
+              className={`w-8 h-8 ${selected === "any" ? "text-white" : "text-accent"}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -96,31 +113,63 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
               />
             </svg>
           </div>
-          <span className="text-sm font-medium">Any available barber</span>
+          <span className={`text-sm font-bold text-center ${selected === "any" ? "text-white" : ""}`}>
+            {uz.barber.anyBarber}
+          </span>
+          {/* Social proof tip */}
+          <span className={`text-[10px] text-center mt-1 font-medium ${
+            selected === "any" ? "text-white/80" : "text-muted"
+          }`}>
+            Tezroq band bo'ladi
+          </span>
+          {selected === "any" && (
+            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/25 flex items-center justify-center animate-scale-in">
+              <span className="text-white text-[10px] font-bold">✓</span>
+            </div>
+          )}
         </button>
 
-        {barbers.map((barber) => (
+        {barbers.map((barber, idx) => (
           <button
             key={barber.id}
-            onClick={() => onSelect(barber)}
-            className="flex flex-col items-center p-4 rounded-xl bg-surface hover:bg-accent/10 active:scale-[0.98] transition-all"
+            onClick={() => handleSelect(barber)}
+            style={{ animationDelay: `${idx * 60}ms` }}
+            className={`flex flex-col items-center p-4 rounded-2xl border transition-all ios-press relative overflow-hidden animate-slide-up ${
+              selected === barber.id
+                ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[0.97]"
+                : "bg-card border-border/60 hover:border-accent/40 hover:bg-surface/50 shadow-sm"
+            }`}
           >
             {barber.photo_url ? (
               <img
                 src={barber.photo_url}
                 alt={barber.full_name}
-                className="w-16 h-16 rounded-full object-cover mb-2"
+                className="w-16 h-16 rounded-full object-cover mb-2 shadow-sm"
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mb-2 text-lg font-semibold text-accent">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 text-xl font-bold shadow-sm ${
+                selected === barber.id
+                  ? "bg-white/20 text-white"
+                  : "bg-accent/10 text-accent border border-accent/20"
+              }`}>
                 {barber.full_name.charAt(0)}
               </div>
             )}
-            <span className="text-sm font-medium">{barber.full_name}</span>
+            <span className={`text-sm font-bold text-center ${selected === barber.id ? "text-white" : "text-primary"}`}>
+              {barber.full_name}
+            </span>
             {barber.bio && (
-              <span className="text-xs text-muted text-center mt-1 line-clamp-2">
+              <span className={`text-[10px] text-center mt-1 line-clamp-2 font-medium ${
+                selected === barber.id ? "text-white/70" : "text-muted"
+              }`}>
                 {barber.bio}
               </span>
+            )}
+            {/* IKEA Effect: check mark confirms their choice */}
+            {selected === barber.id && (
+              <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/25 flex items-center justify-center animate-scale-in">
+                <span className="text-white text-[10px] font-bold">✓</span>
+              </div>
             )}
           </button>
         ))}

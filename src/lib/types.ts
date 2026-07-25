@@ -1,24 +1,34 @@
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  phone: string | null;
+  photo_url: string | null;
+  is_active: boolean;
+  created_at?: string;
+}
+
 export interface Barber {
   id: string;
   full_name: string;
   photo_url: string | null;
-  telegram_user_id: number | null;
-  role: "barber" | "admin";
-  is_active: boolean;
   bio: string | null;
-  sort_order: number;
-  phone: string | null;
-  telegram_chat_id: number | null;
-  onboarding_completed: boolean;
+  email: string | null;
+  phone?: string | null;
+  auth_user_id: string | null;
+  role: "barber" | "admin";
   location_id: string | null;
+  is_active: boolean;
+  sort_order: number;
+  location?: Location;
 }
 
 export interface Service {
   id: string;
   name: string;
+  category: string | null;
   duration_minutes: number;
   price: number;
-  category: string | null;
   is_active: boolean;
   sort_order: number;
 }
@@ -32,7 +42,7 @@ export interface BarberService {
 export interface WorkingHours {
   id: string;
   barber_id: string;
-  weekday: number;
+  weekday: number; // 0=Sunday, 6=Saturday
   start_time: string;
   end_time: string;
 }
@@ -48,9 +58,9 @@ export interface TimeOff {
 
 export interface Client {
   id: string;
-  telegram_user_id: number;
-  full_name: string;
   phone: string;
+  full_name: string;
+  telegram_user_id: number | null;
   first_seen_at: string;
   is_blocked: boolean;
 }
@@ -62,16 +72,20 @@ export interface Booking {
   client_id: string;
   starts_at: string;
   ends_at: string;
-  status: "confirmed" | "cancelled" | "completed" | "no_show";
+  status: "pending" | "confirmed" | "declined" | "cancelled" | "completed" | "no_show";
   price_at_booking: number;
   created_at: string;
   cancelled_at: string | null;
   cancelled_by: "client" | "barber" | "admin" | null;
+  notes?: string | null;
+  responded_at?: string | null;
+  responded_by?: string | null;
 }
 
 export interface BookingWithDetails extends Booking {
   barber?: Barber;
   service?: Service;
+  client?: Client;
 }
 
 export interface TimeRange {
@@ -86,22 +100,3 @@ export type Step =
   | "confirm"
   | "success"
   | "bookings";
-
-export interface Location {
-  id: string;
-  name: string;
-  address: string;
-  phone: string | null;
-  photo_url: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface VerificationCode {
-  id: string;
-  phone: string;
-  code_hash: string;
-  expires_at: string;
-  consumed: boolean;
-  created_at: string;
-}

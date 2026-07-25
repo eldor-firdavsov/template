@@ -1,76 +1,154 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Service } from "../lib/types";
+import { uz } from "../lib/uz";
+import { Skeleton } from "./ui/Skeleton";
 
 interface Props {
   onSelect: (service: Service) => void;
 }
 
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat("uz-UZ").format(price) + " " + uz.currency;
+}
+
 export function StepService({ onSelect }: Props) {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shopInfo, setShopInfo] = useState<{ name: string; address: string } | null>(null);
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order");
+      const [{ data, error }, { data: loc }] = await Promise.all([
+        supabase
+          .from("services")
+          .select("*")
+          .eq("is_active", true)
+          .order("sort_order"),
+        supabase
+          .from("locations")
+          .select("name, address")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-      if (!error && data) {
-        setServices(data as Service[]);
-      }
+      if (!error && data) setServices(data as Service[]);
+      if (loc) setShopInfo(loc);
       setLoading(false);
     }
     load();
   }, []);
 
   const grouped = services.reduce<Record<string, Service[]>>((acc, s) => {
-    const cat = s.category ?? "Services";
+    const cat = s.category ?? "Boshqa";
     if (!acc[cat]) acc[cat] = [];
     acc[cat]!.push(s);
     return acc;
   }, {});
 
+  // Smart Defaults: most popular = lowest sort_order
+  const mostPopularId = services[0]?.id;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted">Loading services...</div>
+      <div className="space-y-6">
+        {/* Reciprocity skeleton — shop info */}
+        <div className="rounded-2xl bg-surface border border-border/50 p-4">
+          <Skeleton className="w-32 h-3 mb-2" />
+          <Skeleton className="w-48 h-4" />
+        </div>
+        <div>
+          <Skeleton className="w-48 h-8 mb-1" />
+          <Skeleton className="w-56 h-4" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="w-24 h-4 mb-3" />
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="w-full h-[76px] rounded-2xl" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 animate-fade-in">
+
+      {/* ── Reciprocity: Give value BEFORE asking for selection ── */}
+      {shopInfo && (
+        <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-accent/6 border border-accent/15 animate-slide-up">
+          <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
+            <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-accent uppercase tracking-wider">{shopInfo.name}</div>
+            <div className="text-xs text-muted truncate mt-0.5">{shopInfo.address}</div>
+          </div>
+          {/* Open indicator */}
+          <div className="ml-auto shrink-0 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
+            <span className="text-[10px] font-semibold text-success">Ochiq</span>
+          </div>
+        </div>
+      )}
+
       <div>
-        <h2 className="text-xl font-semibold mb-1">Choose a Service</h2>
-        <p className="text-sm text-muted">Select what you'd like today</p>
+        <h2 className="text-2xl font-extrabold mb-1 tracking-tight">{uz.steps.chooseService}</h2>
+        <p className="text-sm text-muted">{uz.steps.chooseServiceSub}</p>
       </div>
 
       {Object.entries(grouped).map(([category, items]) => (
-        <div key={category}>
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted mb-2">
+        <div key={category} className="mb-4">
+          <h3 className="sticky top-[152px] z-10 bg-bg/95 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest text-muted/70 mb-3 px-1 py-2">
             {category}
           </h3>
           <div className="space-y-2">
-            {items.map((service) => (
-              <button
-                key={service.id}
-                onClick={() => onSelect(service)}
-                className="w-full flex items-center justify-between p-4 rounded-xl bg-surface hover:bg-accent/10 active:scale-[0.98] transition-all"
-              >
-                <div className="text-left">
-                  <div className="font-medium">{service.name}</div>
-                  <div className="text-sm text-muted">
-                    {service.duration_minutes} min
+            {items.map((service, idx) => {
+              const isPopular = service.id === mostPopularId;
+              return (
+                <button
+                  key={service.id}
+                  onClick={() => onSelect(service)}
+                  style={{ animationDelay: `${idx * 40}ms` }}
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ios-press animate-slide-up ${
+                    isPopular
+                      ? "bg-accent/6 border-accent/25 hover:bg-accent/12 hover:border-accent/40 shadow-sm"
+                      : "bg-card border-border/60 hover:border-accent/40 hover:bg-surface/50 shadow-sm"
+                  }`}
+                >
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm text-primary">{service.name}</span>
+                      {/* Smart Defaults badge */}
+                      {isPopular && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-accent text-white">
+                          Mashhur
+                        </span>
+                      )}
+                    </div>
+                    {/* Contrast Effect: duration provides context for the price */}
+                    <div className="text-xs text-muted mt-1 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {service.duration_minutes} daqiqa
+                    </div>
                   </div>
-                </div>
-                <div className="text-lg font-semibold text-accent">
-                  ${service.price}
-                </div>
-              </button>
-            ))}
+                  <div className="text-right ml-3 shrink-0 flex items-center gap-2">
+                    <div className={`text-base font-extrabold ${isPopular ? "text-accent" : "text-primary"}`}>
+                      {formatPrice(service.price)}
+                    </div>
+                    <svg className="w-4 h-4 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}

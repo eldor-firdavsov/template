@@ -1,0 +1,134 @@
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useBarberAuth } from "../../context/BarberAuthContext";
+import { Lock, Mail, Scissors } from "lucide-react";
+
+export const BarberLogin: React.FC = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { signIn } = useBarberAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setError("Email va parolni kiriting.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    const { error: signInError } = await signIn(email.trim(), password);
+
+    if (signInError) {
+      setError(signInError.message || "Email yoki parol noto'g'ri.");
+      setSubmitting(false);
+    } else {
+      navigate("/barber/timetable");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col justify-center px-4 py-12 max-w-md mx-auto">
+
+      {/* ── Reciprocity: Show value BEFORE asking to log in ── */}
+      <div className="text-center mb-8 animate-fade-in">
+        <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-accent/30">
+          <Scissors size={28} className="text-white" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-primary tracking-tight">Barber Portal</h1>
+        <p className="text-sm text-muted mt-2 leading-relaxed">
+          Barcha bronlaringiz, mijozlaringiz va<br />jadvalingiz — bir joyda.
+        </p>
+
+        {/* Value proposition chips */}
+        <div className="flex justify-center gap-2 mt-4 flex-wrap">
+          {["📅 Jadval", "👥 Mijozlar", "📊 Statistika"].map((chip) => (
+            <span
+              key={chip}
+              className="text-[11px] font-semibold px-3 py-1 rounded-full bg-surface border border-border/50 text-muted"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Login card */}
+      <div className="bg-card rounded-2xl border border-border/50 p-6 space-y-5 shadow-sm animate-slide-up">
+        <div className="text-xs font-bold text-muted uppercase tracking-widest">Kirish</div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-muted mb-1.5">
+              Email manzil
+            </label>
+            <div className="flex items-center bg-bg rounded-xl px-3.5 border border-border focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15 transition-all">
+              <Mail size={16} className="text-muted shrink-0 mr-2.5" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="barber@salon.uz"
+                className="w-full py-3 bg-transparent text-primary outline-none text-sm font-medium"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted mb-1.5">
+              Parol
+            </label>
+            <div className="flex items-center bg-bg rounded-xl px-3.5 border border-border focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15 transition-all">
+              <Lock size={16} className="text-muted shrink-0 mr-2.5" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full py-3 bg-transparent text-primary outline-none text-sm font-medium"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-danger/8 border border-danger/20 rounded-xl text-danger text-xs font-semibold animate-slide-up">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-3.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl transition-all shadow-md shadow-accent/20 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Kirish...
+              </>
+            ) : (
+              <>Kirish →</>
+            )}
+          </button>
+        </form>
+      </div>
+
+      <p className="text-center text-xs text-muted mt-5">
+        Hisob yo'qmi?{" "}
+        <Link to="/barber/register" className="text-accent font-bold hover:underline">
+          Ro'yxatdan o'tish
+        </Link>
+      </p>
+    </div>
+  );
+};

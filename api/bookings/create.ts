@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const dateStr = startDt.toISOString().substring(0, 10);
   const startWeekday = startDt.getUTCDay();
 
-  // Fetch working hours, time off, and bookings on that day in parallel for all candidates
+  // Fetch working hours, time off, and confirmed bookings
   const [whResult, toResult, bookingResult] = await Promise.all([
     supabaseAdmin
       .from("working_hours")
@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from("bookings")
       .select("barber_id, starts_at, ends_at, status")
       .in("barber_id", candidates.map((c) => c.id))
-      .eq("status", "confirmed")
+      .in("status", ["confirmed", "pending"])
       .gte("starts_at", `${dateStr}T00:00:00Z`)
       .lte("starts_at", `${dateStr}T23:59:59Z`),
   ]);
@@ -117,7 +117,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 1. Check working hours
     const whs = (whResult.data ?? []).filter((w) => w.barber_id === c.id);
-    const isWorking = whs.some((w) => w.start_time <= startTimeStr && w.end_time >= endTimeStr);
+    const effectiveWhs =
+      whs.length > 0
+        ? whs
+        : startWeekday >= 1 && startWeekday <= 6
+        ? [{ barber_id: c.id, weekday: startWeekday, start_time: "09:00:00", end_time: "20:00:00" }]
+        : [];
+    const isWorking = effectiveWhs.some((w) => w.start_time <= startTimeStr && w.end_time >= endTimeStr);
     if (!isWorking) continue;
 
     // 2. Check time off
@@ -125,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isOff = tos.some((t) => !t.start_time && !t.end_time || (t.start_time! < endTimeStr && t.end_time! > startTimeStr));
     if (isOff) continue;
 
-    // 3. Check booking conflicts
+    // 3. Check booking conflicts (confirmed only)
     const barberBookings = (bookingResult.data ?? []).filter((b) => b.barber_id === c.id);
     const hasConflict = barberBookings.some((b) => new Date(b.starts_at) < endDt && new Date(b.ends_at) > startDt);
     if (hasConflict) continue;
@@ -155,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const assignedDuration = selectedCandidate.duration;
   const endDt = new Date(startDt.getTime() + assignedDuration * 60 * 1000);
 
-  // Create the booking
+  // Create the booking as PENDING
   const { data: booking, error: bookingErr } = await supabaseAdmin
     .from("bookings")
     .insert({
@@ -164,7 +170,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       client_id: existingClient.id,
       starts_at: startDt.toISOString(),
       ends_at: endDt.toISOString(),
-      status: "confirmed",
+      status: "pending",
       price_at_booking: service.price,
     })
     .select("id")
@@ -175,10 +181,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: "Failed to create booking" });
   }
 
-  // Booking confirmed successfully
-
   return res.json({
     booking_id: booking.id,
+    status: "pending",
     barber: {
       id: assignedBarber.id,
       full_name: assignedBarber.full_name,

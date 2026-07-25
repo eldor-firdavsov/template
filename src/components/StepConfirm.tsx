@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { Barber, Service } from "../lib/types";
 import { createBooking, ensureClient } from "../lib/api";
+import { uz } from "../lib/uz";
 
 interface Props {
   service: Service;
@@ -17,10 +18,30 @@ function getSavedCredentials() {
     return {
       fullName: localStorage.getItem("client_full_name") ?? "",
       phone: localStorage.getItem("client_phone") ?? "",
+      note: localStorage.getItem("client_note") ?? "",
     };
   } catch {
-    return { fullName: "", phone: "" };
+    return { fullName: "", phone: "", note: "" };
   }
+}
+
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat("uz-UZ").format(price) + " " + uz.currency;
+}
+
+function formatPhoneNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  let formatted = digits;
+  if (!formatted.startsWith("998") && formatted.length > 0) {
+    formatted = "998" + formatted;
+  }
+  if (formatted.length === 0) return "";
+  let res = "+998";
+  if (formatted.length > 3) res += " " + formatted.substring(3, 5);
+  if (formatted.length > 5) res += " " + formatted.substring(5, 8);
+  if (formatted.length > 8) res += " " + formatted.substring(8, 10);
+  if (formatted.length > 10) res += " " + formatted.substring(10, 12);
+  return res;
 }
 
 export function StepConfirm({
@@ -35,19 +56,19 @@ export function StepConfirm({
   const saved = getSavedCredentials();
   const [fullName, setFullName] = useState(saved.fullName);
   const [phone, setPhone] = useState(saved.phone);
+  const [note, setNote] = useState(saved.note);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const displayBarber = assignedBarber ?? barber;
+  const isReturningUser = Boolean(saved.fullName && saved.phone);
 
   const formatDate = (d: string) => {
     const dateObj = new Date(d + "T12:00:00Z");
-    return dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      timeZone: "UTC",
-    });
+    const weekday = uz.weekdays[dateObj.getUTCDay()] ?? "";
+    const day = dateObj.getUTCDate();
+    const month = uz.months[dateObj.getUTCMonth()] ?? "";
+    return `${weekday}, ${day}-${month}`;
   };
 
   const handleConfirm = useCallback(async () => {
@@ -56,158 +77,229 @@ export function StepConfirm({
     const phoneTrimmed = phone.trim();
 
     if (!nameTrimmed) {
-      setError("Please enter your full name.");
+      setError(uz.errors.nameRequired);
       return;
     }
-    if (!phoneTrimmed) {
-      setError("Please enter your phone number.");
+    if (!phoneTrimmed || phoneTrimmed.replace(/\D/g, "").length !== 12) {
+      setError(uz.errors.phoneRequired);
       return;
     }
 
     setBooking(true);
     try {
-      // Ensure/create client by phone
       const clientResult = await ensureClient({
         full_name: nameTrimmed,
         phone: phoneTrimmed,
       });
 
-      // Persist locally for future visits
       localStorage.setItem("client_id", clientResult.client_id);
       localStorage.setItem("client_full_name", nameTrimmed);
       localStorage.setItem("client_phone", phoneTrimmed);
+      localStorage.setItem("client_note", note);
 
-      // Create the booking
       const startsAt = new Date(`${date}T${time}:00Z`);
       const result = await createBooking({
         service_id: service.id,
         barber_id: displayBarber ? displayBarber.id : null,
         starts_at: startsAt.toISOString(),
         client_id: clientResult.client_id,
+        client_note: note.trim() || undefined,
       });
 
       onConfirm(result.barber);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create booking. Please try again.",
-      );
+      setError(err instanceof Error ? err.message : uz.errors.generic);
       setBooking(false);
     }
-  }, [fullName, phone, displayBarber, service, date, time, onConfirm]);
+  }, [fullName, phone, note, displayBarber, service, date, time, onConfirm]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 rounded-lg hover:bg-surface active:scale-95 transition-all"
+          className="p-2 -ml-2 rounded-xl hover:bg-surface active:scale-95 transition-all"
+          aria-label={uz.actions.back}
+          disabled={booking}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h2 className="text-xl font-semibold">Confirm Booking</h2>
+        <div>
+          <h2 className="text-xl font-extrabold tracking-tight">{uz.steps.confirmBooking}</h2>
+          {/* Reciprocity: tell them what they're getting */}
+          <p className="text-xs text-muted mt-0.5">Shunchaki tekshirib tasdiqlang</p>
+        </div>
       </div>
 
-      {error && (
-        <div className="p-3 rounded-xl bg-danger/10 text-danger text-sm">
-          {error}
+      {/* ── Reciprocity: Show their booking summary FIRST, contact form SECOND ── */}
+      {/* IKEA Effect: This is "their" booking — ownership language throughout */}
+      <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+        {/* Booking header */}
+        <div className="bg-accent/6 border-b border-accent/12 px-5 py-3">
+          <div className="text-[10px] font-bold text-accent uppercase tracking-widest">
+            Sizning bron
+          </div>
         </div>
-      )}
 
-      {/* Booking Summary */}
-      <div className="bg-surface rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-3">
-          {displayBarber?.photo_url ? (
-            <img
-              src={displayBarber.photo_url}
-              alt={displayBarber.full_name}
-              className="w-12 h-12 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-accent font-semibold">
-              {displayBarber?.full_name.charAt(0) ?? "?"}
+        <div className="p-5 space-y-4">
+          {/* Barber + service row */}
+          <div className="flex items-center gap-3">
+            {displayBarber?.photo_url ? (
+              <img
+                src={displayBarber.photo_url}
+                alt={displayBarber.full_name}
+                className="w-12 h-12 rounded-full object-cover shadow-sm"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold border border-accent/20">
+                {displayBarber?.full_name.charAt(0) ?? "✂"}
+              </div>
+            )}
+            <div>
+              <div className="font-bold text-sm text-primary">
+                {displayBarber?.full_name ?? uz.summary.anyBarber}
+              </div>
+              <div className="text-xs text-muted">{service.name}</div>
+            </div>
+          </div>
+
+          <div className="h-px bg-border/50" />
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {uz.summary.date}
+              </span>
+              <span className="font-semibold">{formatDate(date)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {uz.summary.time}
+              </span>
+              <span className="font-semibold">{time}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted">{uz.summary.duration}</span>
+              <span className="font-semibold">{service.duration_minutes} daqiqa</span>
+            </div>
+          </div>
+
+          <div className="h-px bg-border/50" />
+
+          {/* Contrast Effect: price shown last, after all the value */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted">{uz.summary.price}</span>
+            <span className="text-xl font-extrabold text-accent">
+              {formatPrice(service.price)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Contact form — framed as personalisation, not a wall ── */}
+      <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-bold text-muted uppercase tracking-widest">
+              {/* Smart Defaults: warm greeting for returning users */}
+              {isReturningUser
+                ? `Xush kelibsiz yana, ${saved.fullName.split(" ")[0]}!`
+                : "Kim uchun bron?"}
+            </div>
+            {isReturningUser && (
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-success/10 text-success font-bold border border-success/20">
+                Saqlangan ✓
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {error && (
+            <div className="p-3 rounded-xl bg-danger/8 text-danger text-sm border border-danger/20 font-medium animate-slide-up">
+              {error}
             </div>
           )}
+
           <div>
-            <div className="font-medium">
-              {displayBarber?.full_name ?? "Any Available Barber"}
-            </div>
-            <div className="text-sm text-muted">{service.name}</div>
-          </div>
-        </div>
-
-        <div className="h-px bg-border" />
-
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted">Date</span>
-            <span className="font-medium">{formatDate(date)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted">Time</span>
-            <span className="font-medium">{time}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted">Duration</span>
-            <span className="font-medium">{service.duration_minutes} min</span>
-          </div>
-          <div className="h-px bg-border" />
-          <div className="flex justify-between">
-            <span className="text-muted">Price</span>
-            <span className="text-lg font-bold text-accent">${service.price}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Contact Info */}
-      <div className="bg-surface rounded-2xl p-5 space-y-4">
-        <h3 className="font-semibold text-sm text-muted uppercase tracking-wider">
-          Your Details
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="confirm-name">
-              Full Name
+            <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="confirm-name">
+              {uz.contact.name}
             </label>
             <input
               id="confirm-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="e.g. John Smith"
-              className="w-full px-4 py-2.5 rounded-xl bg-bg border border-border text-sm focus:outline-none focus:border-accent transition-colors"
+              placeholder={uz.contact.namePlaceholder}
+              className="w-full px-4 py-3 rounded-xl bg-bg border border-border text-sm font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all disabled:opacity-60"
               disabled={booking}
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="confirm-phone">
-              Phone Number
+            <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="confirm-phone">
+              {uz.contact.phone}
             </label>
             <input
               id="confirm-phone"
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. +1 555 000 0000"
-              className="w-full px-4 py-2.5 rounded-xl bg-bg border border-border text-sm focus:outline-none focus:border-accent transition-colors"
+              onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+              placeholder="+998 XX XXX XX XX"
+              className="w-full px-4 py-3 rounded-xl bg-bg border border-border text-sm font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all disabled:opacity-60"
+              disabled={booking}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="confirm-note">
+              {uz.contact.note}
+            </label>
+            <textarea
+              id="confirm-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={uz.contact.notePlaceholder}
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl bg-bg border border-border text-sm font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all resize-none disabled:opacity-60"
               disabled={booking}
             />
           </div>
         </div>
       </div>
 
-      {/* Confirm Button */}
+      {/* IKEA Effect: CTA says "Finalize YOUR booking" — ownership language */}
       <button
         onClick={handleConfirm}
         disabled={booking}
-        className="w-full py-3.5 rounded-2xl bg-accent text-white font-semibold text-sm
-          hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-4 rounded-2xl bg-accent font-bold text-white text-sm
+          hover:bg-accent-hover active:scale-[0.98] transition-all disabled:opacity-60
+          flex items-center justify-center gap-2 shadow-lg shadow-accent/25"
       >
-        {booking ? "Booking…" : "Confirm Booking"}
+        {booking ? (
+          <>
+            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            {uz.actions.confirming}
+          </>
+        ) : (
+          <>
+            Bronni yakunlash
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </>
+        )}
       </button>
     </div>
   );
