@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin";
+import { supabaseAdmin, parseBody } from "../_lib/supabase-admin";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { booking_id, client_id } = req.body as { booking_id?: string; client_id?: string };
+  const body = parseBody(req.body);
+  const { booking_id, client_id } = body as { booking_id?: string; client_id?: string };
   if (!booking_id || !client_id) {
     return res.status(400).json({ error: "Missing booking_id or client_id" });
   }

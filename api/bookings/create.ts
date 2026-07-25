@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin";
+import { supabaseAdmin, parseBody } from "../_lib/supabase-admin";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { service_id, barber_id, starts_at, client_id } = req.body as {
+  const body = parseBody(req.body);
+  const { service_id, barber_id, starts_at, client_id } = body as {
     service_id?: string;
     barber_id?: string;
     starts_at?: string;
