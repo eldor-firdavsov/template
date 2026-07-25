@@ -55,7 +55,7 @@ export const BarberRegister: React.FC = () => {
   };
 
   // Goal Gradient: show onboarding progress (they're on step 1 of 3)
-  const steps = ["Hisob yaratish", "Sozlash", "Dashboard"];
+  const steps = ["Hisob yaratish", "Sozlash", "Boshqaruv paneli"];
   const currentStep = 0;
 
   return (

@@ -62,9 +62,9 @@ export const BarberStats: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-white/10">
         <div>
-          <h2 className="text-xl font-extrabold text-text">Performance Analytics</h2>
+          <h2 className="text-xl font-extrabold text-text">Statistika va Tahlillar</h2>
           <p className="text-xs text-text-secondary">
-            {barber?.role === "admin" ? "Shop-wide revenue & booking stats" : "Your personal performance metrics"}
+            {barber?.role === "admin" ? "Sartaroshxona umumiy daromadi va navbatlar statistikasi" : "Shaxsiy ish ko'rsatkichlaringiz"}
           </p>
         </div>
         <div className="flex items-center gap-1 bg-bg p-1 rounded-xl border border-white/10 text-xs font-bold">
@@ -74,7 +74,7 @@ export const BarberStats: React.FC = () => {
               timeRange === "7d" ? "bg-accent text-white" : "text-text-secondary hover:text-text"
             }`}
           >
-            Last 7 Days
+            Oxirgi 7 kun
           </button>
           <button
             onClick={() => setTimeRange("30d")}
@@ -82,7 +82,7 @@ export const BarberStats: React.FC = () => {
               timeRange === "30d" ? "bg-accent text-white" : "text-text-secondary hover:text-text"
             }`}
           >
-            Last 30 Days
+            Oxirgi 30 kun
           </button>
           <button
             onClick={() => setTimeRange("all")}
@@ -90,7 +90,7 @@ export const BarberStats: React.FC = () => {
               timeRange === "all" ? "bg-accent text-white" : "text-text-secondary hover:text-text"
             }`}
           >
-            All Time
+            Barcha vaqt
           </button>
         </div>
       </div>
@@ -105,56 +105,58 @@ export const BarberStats: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-card p-5 rounded-2xl border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-text-secondary">
-                <span className="text-xs font-bold uppercase tracking-wider">Completed Revenue</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Ishlangan Daromad</span>
                 <DollarSign size={18} className="text-emerald-400" />
               </div>
-              <p className="text-3xl font-extrabold text-emerald-400">${totalRevenue.toFixed(2)}</p>
+              <p className="text-2xl font-extrabold text-emerald-400">
+                {new Intl.NumberFormat("uz-UZ").format(totalRevenue)} so'm
+              </p>
               <p className="text-[11px] text-text-secondary">
-                Est. Total: ${potentialRevenue.toFixed(2)}
+                Kutilayotgan: {new Intl.NumberFormat("uz-UZ").format(potentialRevenue)} so'm
               </p>
             </div>
 
             <div className="bg-card p-5 rounded-2xl border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-text-secondary">
-                <span className="text-xs font-bold uppercase tracking-wider">Total Bookings</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Jami Navbatlar</span>
                 <Calendar size={18} className="text-blue-400" />
               </div>
               <p className="text-3xl font-extrabold text-text">{totalBookings}</p>
               <p className="text-[11px] text-text-secondary">
-                {completedBookings.length} completed ({completionRate}%)
+                {completedBookings.length} ta yakunlandi ({completionRate}%)
               </p>
             </div>
 
             <div className="bg-card p-5 rounded-2xl border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-text-secondary">
-                <span className="text-xs font-bold uppercase tracking-wider">No-Show Rate</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Kelmaganlar Ulushi</span>
                 <AlertCircle size={18} className="text-amber-400" />
               </div>
               <p className="text-3xl font-extrabold text-amber-400">{noShowRate}%</p>
               <p className="text-[11px] text-text-secondary">
-                {noShowBookings.length} total no-shows
+                {noShowBookings.length} ta kelmagan mijoz
               </p>
             </div>
 
             <div className="bg-card p-5 rounded-2xl border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-text-secondary">
-                <span className="text-xs font-bold uppercase tracking-wider">Cancellations</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Bekor Qilinganlar</span>
                 <TrendingUp size={18} className="text-red-400" />
               </div>
               <p className="text-3xl font-extrabold text-red-400">{cancelledBookings.length}</p>
-              <p className="text-[11px] text-text-secondary">Cancelled appointments</p>
+              <p className="text-[11px] text-text-secondary">Bekor qilingan navbatlar</p>
             </div>
           </div>
 
           {/* Breakdown Chart Overview */}
           <div className="bg-card rounded-2xl border border-white/10 p-6 space-y-4">
-            <h3 className="font-extrabold text-base text-text">Booking Status Breakdown</h3>
+            <h3 className="font-extrabold text-base text-text">Navbatlar Holati Bo'yicha Tahlil</h3>
 
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
                   <span className="text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 size={14} /> Completed ({completedBookings.length})
+                    <CheckCircle2 size={14} /> Yakunlangan ({completedBookings.length})
                   </span>
                   <span>{completionRate}%</span>
                 </div>
@@ -169,7 +171,7 @@ export const BarberStats: React.FC = () => {
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
                   <span className="text-blue-400 flex items-center gap-1">
-                    <Calendar size={14} /> Confirmed/Upcoming ({confirmedBookings.length})
+                    <Calendar size={14} /> Tasdiqlangan / Kutilayotgan ({confirmedBookings.length})
                   </span>
                   <span>
                     {totalBookings > 0
@@ -193,7 +195,7 @@ export const BarberStats: React.FC = () => {
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
                   <span className="text-amber-400 flex items-center gap-1">
-                    <AlertCircle size={14} /> No-Show ({noShowBookings.length})
+                    <AlertCircle size={14} /> Kelmagan ({noShowBookings.length})
                   </span>
                   <span>{noShowRate}%</span>
                 </div>

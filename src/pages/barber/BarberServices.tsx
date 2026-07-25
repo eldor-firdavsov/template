@@ -40,9 +40,9 @@ export const BarberServices: React.FC = () => {
     return (
       <div className="bg-card p-8 rounded-2xl border border-white/10 text-center space-y-3 animate-fade-in shadow-sm">
         <ShieldAlert size={32} className="text-amber-400 mx-auto" />
-        <h2 className="text-lg font-bold text-text">Admin Only Access</h2>
+        <h2 className="text-lg font-bold text-text">Faqat Adminlar Uchun</h2>
         <p className="text-xs text-text-secondary">
-          Only shop administrators can manage services and pricing.
+          Faqat sartaroshxona adminlari xizmatlar va narxlarni boshqara oladi.
         </p>
       </div>
     );
@@ -51,7 +51,7 @@ export const BarberServices: React.FC = () => {
   const openCreateModal = () => {
     setEditingService(null);
     setName("");
-    setCategory("General");
+    setCategory("Boshqa");
     setDuration(30);
     setPrice(25000);
     setModalOpen(true);
@@ -60,7 +60,7 @@ export const BarberServices: React.FC = () => {
   const openEditModal = (svc: Service) => {
     setEditingService(svc);
     setName(svc.name);
-    setCategory(svc.category || "General");
+    setCategory(svc.category || "Boshqa");
     setDuration(svc.duration_minutes);
     setPrice(svc.price);
     setModalOpen(true);
@@ -124,14 +124,14 @@ export const BarberServices: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-white/10 shadow-sm">
         <div>
-          <h2 className="text-xl font-extrabold text-text">Service Catalog (Admin)</h2>
-          <p className="text-xs text-text-secondary">Manage available services, prices, and durations</p>
+          <h2 className="text-xl font-extrabold text-text">Xizmatlar Katalogi (Admin)</h2>
+          <p className="text-xs text-text-secondary">Xizmatlar, narxlar va davomiylikni boshqarish</p>
         </div>
         <button
           onClick={openCreateModal}
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-white font-bold rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-accent/20 hover:opacity-90"
         >
-          <Plus size={16} /> Add New Service
+          <Plus size={16} /> Yangi Xizmat Qo'shish
         </button>
       </div>
 
@@ -147,9 +147,9 @@ export const BarberServices: React.FC = () => {
             <Scissors size={28} />
           </div>
           <div>
-            <h3 className="font-bold text-text text-lg">No services configured</h3>
+            <h3 className="font-bold text-text text-lg">Xizmatlar topilmadi</h3>
             <p className="text-sm text-text-secondary mt-1 max-w-xs mx-auto">
-              Add your first service to allow clients to start booking appointments.
+              Mijozlar navbat olishi uchun birinchi xizmatni qo'shing.
             </p>
           </div>
         </div>
@@ -165,11 +165,11 @@ export const BarberServices: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
-                    {svc.category || "General"}
+                    {svc.category || "Boshqa"}
                   </span>
                   <h3 className="font-extrabold text-base text-text mt-0.5">{svc.name}</h3>
                   <p className="text-xs font-semibold text-text-secondary mt-1">
-                    {new Intl.NumberFormat("uz-UZ").format(svc.price)} so'm • {svc.duration_minutes} mins
+                    {new Intl.NumberFormat("uz-UZ").format(svc.price)} so'm • {svc.duration_minutes} daqiqa
                   </p>
                 </div>
 
@@ -188,7 +188,7 @@ export const BarberServices: React.FC = () => {
                         : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
                     }`}
                   >
-                    {svc.is_active ? "Deactivate" : "Activate"}
+                    {svc.is_active ? "O'chirish" : "Yoqish"}
                   </button>
                 </div>
               </div>
@@ -202,33 +202,33 @@ export const BarberServices: React.FC = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-card border border-white/10 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-slide-up">
             <h3 className="text-lg font-bold text-text">
-              {editingService ? "Edit Service" : "Add New Service"}
+              {editingService ? "Xizmatni Tahrirlash" : "Yangi Xizmat Qo'shish"}
             </h3>
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                  Service Name
+                  Xizmat Nomi
                 </label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Haircut & Beard Trim"
+                  placeholder="masalan: Soch oldirish & Soqol"
                   className="w-full bg-bg px-3 py-2.5 rounded-xl text-xs border border-white/10 text-text outline-none focus:border-accent transition-colors"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                  Category
+                  Kategoriya
                 </label>
                 <input
                   type="text"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g. Haircuts, Shaving, Coloring"
+                  placeholder="masalan: Soch, Soqol, Bo'yash"
                   className="w-full bg-bg px-3 py-2.5 rounded-xl text-xs border border-white/10 text-text outline-none focus:border-accent transition-colors"
                 />
               </div>
@@ -236,7 +236,7 @@ export const BarberServices: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                    Price (so'm)
+                    Narxi (so'm)
                   </label>
                   <input
                     type="number"
@@ -250,7 +250,7 @@ export const BarberServices: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                    Duration (mins)
+                    Davomiyligi (daqiqa)
                   </label>
                   <input
                     type="number"
@@ -270,7 +270,7 @@ export const BarberServices: React.FC = () => {
                   onClick={() => setModalOpen(false)}
                   className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-text font-bold rounded-xl text-xs transition-colors active:scale-95"
                 >
-                  Cancel
+                  Bekor qilish
                 </button>
                 <button
                   type="submit"
@@ -283,7 +283,7 @@ export const BarberServices: React.FC = () => {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   )}
-                  {saving ? "Saving..." : "Save Service"}
+                  {saving ? "Saqlanmoqda..." : "Xizmatni Saqlash"}
                 </button>
               </div>
             </form>
