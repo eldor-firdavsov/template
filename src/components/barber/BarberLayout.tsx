@@ -335,8 +335,8 @@ export const BarberLayout: React.FC = () => {
       </main>
 
       {/* ── Mobile Bottom Navigation: Floating iOS 26 Liquid Glass Capsule Bar ── */}
-      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-30 liquid-glass-nav rounded-[28px] py-1.5 px-2">
-        <div className="flex items-center justify-around relative">
+      <nav className="md:hidden fixed bottom-3 left-3 right-3 z-30 liquid-glass-nav rounded-[26px] p-1.5 shadow-2xl">
+        <div className="grid grid-cols-4 items-center justify-items-center gap-1 relative w-full">
           {primaryTabs.map((item) => {
             const Icon = item.icon;
             const isTimetable = item.label === "Jadval";
@@ -345,20 +345,20 @@ export const BarberLayout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-1 py-1.5 px-3.5 rounded-2xl text-[10px] font-bold transition-all duration-300 ios-press relative z-10 ${
-                    isActive ? "text-white liquid-glass-pill scale-105" : "text-muted hover:text-primary"
+                  `w-full flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-[11px] font-bold transition-all duration-300 ios-press relative z-10 select-none ${
+                    isActive ? "text-white liquid-glass-pill scale-[1.03]" : "text-muted hover:text-primary"
                   }`
                 }
               >
                 <div className="relative">
-                  <Icon size={20} className="transition-transform duration-300" />
+                  <Icon size={21} className="transition-transform duration-300" />
                   {isTimetable && (isAdmin ? shopPendingCount > 0 : personalPendingCount > 0) && (
                     <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] bg-danger text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md px-1 animate-urgency">
                       {isAdmin ? shopPendingCount : personalPendingCount}
                     </span>
                   )}
                 </div>
-                <span className="tracking-tight">{item.label}</span>
+                <span className="tracking-tight truncate max-w-full text-center leading-tight mt-0.5">{item.label}</span>
               </NavLink>
             );
           })}
@@ -366,14 +366,14 @@ export const BarberLayout: React.FC = () => {
           {/* "More" tab — opens iOS bottom sheet */}
           <button
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center gap-1 py-1.5 px-3.5 rounded-2xl text-[10px] font-bold transition-all duration-300 ios-press relative z-10 ${
-              isMoreActive ? "text-white liquid-glass-pill scale-105" : "text-muted hover:text-primary"
+            className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-[11px] font-bold transition-all duration-300 ios-press relative z-10 select-none ${
+              isMoreActive ? "text-white liquid-glass-pill scale-[1.03]" : "text-muted hover:text-primary"
             }`}
           >
             <div className="relative">
-              <ChevronDown size={20} className={`transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
+              <ChevronDown size={21} className={`transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
             </div>
-            <span className="tracking-tight">Ko'proq</span>
+            <span className="tracking-tight truncate max-w-full text-center leading-tight mt-0.5">Ko'proq</span>
           </button>
         </div>
       </nav>
@@ -383,28 +383,31 @@ export const BarberLayout: React.FC = () => {
         <>
           {/* Backdrop */}
           <div
-            className="md:hidden fixed inset-0 bg-primary/40 backdrop-blur-sm z-30 animate-fade-in"
+            className="md:hidden fixed inset-0 bg-primary/40 backdrop-blur-md z-30 animate-fade-in"
             onClick={() => setMoreOpen(false)}
           />
 
           {/* Sheet */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl border-t border-border/50 z-40 animate-slide-up shadow-xl">
-            {/* Handle */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] border-t border-border/60 z-40 animate-slide-up shadow-2xl pb-[env(safe-area-inset-bottom,20px)]">
+            {/* Grab Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-border" />
+              <div className="w-12 h-1.5 rounded-full bg-muted/30" />
             </div>
 
-            <div className="flex items-center justify-between px-5 py-2">
-              <span className="text-xs font-bold text-muted uppercase tracking-widest">Boshqa sahifalar</span>
+            <div className="flex items-center justify-between px-6 py-3 border-b border-border/40">
+              <div>
+                <h3 className="text-sm font-extrabold text-primary tracking-tight">Boshqa bo'limlar</h3>
+                <p className="text-[11px] text-muted font-medium">Barcha sozlamalar va sahifalar</p>
+              </div>
               <button
                 onClick={() => setMoreOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-surface text-muted"
+                className="w-8 h-8 rounded-full bg-surface flex items-center justify-center text-muted hover:text-primary transition-all active:scale-90"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="px-4 pb-6 space-y-1">
+            <div className="p-4 grid grid-cols-2 gap-2.5 max-h-[60vh] overflow-y-auto">
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname.startsWith(item.path);
@@ -413,14 +416,16 @@ export const BarberLayout: React.FC = () => {
                     key={item.path}
                     to={item.path}
                     onClick={() => setMoreOpen(false)}
-                    className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all ${
+                    className={`flex items-center gap-3 p-3 rounded-2xl text-xs font-bold transition-all ios-press border ${
                       isActive
-                        ? "bg-accent text-white shadow-md shadow-accent/20"
-                        : "text-primary hover:bg-surface"
+                        ? "bg-accent text-white border-accent shadow-md shadow-accent/20"
+                        : "bg-surface/60 text-primary border-border/50 hover:bg-surface"
                     }`}
                   >
-                    <Icon size={20} />
-                    <span>{item.label}</span>
+                    <div className={`p-2 rounded-xl ${isActive ? "bg-white/20" : "bg-card text-accent shadow-xs"}`}>
+                      <Icon size={18} />
+                    </div>
+                    <span className="truncate">{item.label}</span>
                   </NavLink>
                 );
               })}
