@@ -30,16 +30,52 @@ export const BarberRegister: React.FC = () => {
     setSubmitting(true);
     setError(null);
 
-    const { error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password });
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (signUpError) {
-      let msg = signUpError.message || "Ro'yxatdan o'tishda xatolik.";
+    try {
+      // 1. Try serverless backend registration first (auto-confirms email and bypasses client rate limits)
+      const res = await fetch("/api/barber/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      });
+
+      if (res.ok) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+        if (!signInError) {
+          navigate("/barber/onboarding");
+          return;
+        }
+      }
+    } catch {
+      // API call unavailable, fall back to direct Supabase client call
+    }
+
+    // Fallback direct Supabase client call
+    const { error: signUpError, data: signUpData } = await supabase.auth.signUp({ email: cleanEmail, password });
+
+    if (signUpError || (signUpData && signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0)) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (!signInError) {
+        navigate("/barber/onboarding");
+        return;
+      }
+
+      let msg = signUpError?.message || "Ro'yxatdan o'tishda xatolik.";
       if (msg.includes("Load failed") || msg.includes("Failed to fetch") || msg.includes("Network") || msg.includes("network")) {
         msg = "Server bilan aloqa uzildi (Tarmoq xatosi). Iltimos, internet ulanishingizni tekshiring yoki sahifani yangilab qayta urinib ko'ring.";
       } else if (msg.includes("rate limit") || msg.includes("too many") || msg.includes("429")) {
-        msg = "Juda ko'p urinish bo'ldi. Iltimos, bir oz kutib qayta urinib ko'ring.";
+        msg = "Juda ko'p urinish bo'ldi. Iltimos, 30 soniya kutib qayta urinib ko'ring.";
       } else if (msg.includes("User already registered") || msg.includes("already exists")) {
-        msg = "Bu email manzil allaqachon ro'yxatdan o'tgan.";
+        msg = "Bu email manzil allaqachon ro'yxatdan o'tgan. Iltimos, parolingizni tekshiring yoki Login sahifasiga o'ting.";
       }
       setError(msg);
       setSubmitting(false);

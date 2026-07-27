@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useBarberAuth } from "../../context/BarberAuthContext";
+import { supabase } from "../../lib/supabase";
 import { Lock, Mail, Scissors, Calendar, Users, TrendingUp } from "lucide-react";
 
 export const BarberLogin: React.FC = () => {
@@ -43,13 +44,25 @@ export const BarberLogin: React.FC = () => {
     const { error: signInError } = await signIn(email.trim(), password);
 
     if (signInError) {
+      // Automatic fallback: if account wasn't created yet or credentials failed, try signing them up on the fly!
+      if (signInError.message?.includes("Invalid login credentials") || signInError.message?.includes("user not found") || signInError.message?.includes("invalid claim")) {
+        const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+        if (!signUpError && signUpData?.user) {
+          navigate("/barber/onboarding");
+          return;
+        }
+      }
+
       let msg = signInError.message || "Email yoki parol noto'g'ri.";
       if (msg.includes("Load failed") || msg.includes("Failed to fetch") || msg.includes("Network") || msg.includes("network")) {
         msg = "Server bilan aloqa uzildi (Tarmoq xatosi). Iltimos, internet ulanishingizni tekshiring yoki sahifani yangilab qayta urinib ko'ring.";
       } else if (msg.includes("rate limit") || msg.includes("too many") || msg.includes("429")) {
-        msg = "Juda ko'p urinish bo'ldi. Iltimos, bir oz kutib qayta urinib ko'ring.";
+        msg = "Juda ko'p urinish bo'ldi. Iltimos, 30 soniya kutib qayta urinib ko'ring.";
       } else if (msg.includes("Invalid login credentials") || msg.includes("invalid claim") || msg.includes("user not found")) {
-        msg = "Email manzil yoki parol noto'g'ri kiritildi.";
+        msg = "Email manzil yoki parol noto'g'ri kiritildi (yoki hisob yaratilmagan).";
       }
       setError(msg);
       setSubmitting(false);
