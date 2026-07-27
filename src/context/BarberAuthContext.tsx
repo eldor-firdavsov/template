@@ -33,12 +33,21 @@ export const BarberAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         .maybeSingle();
 
       if (!data && authUser.email) {
+        const cleanEmail = authUser.email.trim().toLowerCase();
         const { data: emailData } = await supabase
           .from("barbers")
           .select("*, location:locations(*)")
-          .eq("email", authUser.email)
+          .ilike("email", cleanEmail)
           .maybeSingle();
-        data = emailData;
+        
+        if (emailData) {
+          data = emailData;
+          // Auto-link auth_user_id if not linked yet
+          if (!emailData.auth_user_id) {
+            await supabase.from("barbers").update({ auth_user_id: authUser.id }).eq("id", emailData.id);
+            data = { ...emailData, auth_user_id: authUser.id };
+          }
+        }
       }
 
       setBarber(data || null);
