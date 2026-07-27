@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { Lock, Mail, ArrowLeft, Scissors } from "lucide-react";
+import { Lock, Mail, ArrowLeft, Scissors, Check } from "lucide-react";
 
 export const BarberRegister: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -94,7 +94,7 @@ export const BarberRegister: React.FC = () => {
                   ? "bg-accent/20 border-accent/30 text-accent"
                   : "bg-surface border-border text-muted/40"
               }`}>
-                {idx < currentStep ? "✓" : idx + 1}
+                {idx < currentStep ? <Check size={10} className="stroke-[3]" /> : idx + 1}
               </div>
               <span className={`text-[9px] uppercase tracking-wider font-semibold ${
                 idx === currentStep ? "text-accent" : "text-muted/50"

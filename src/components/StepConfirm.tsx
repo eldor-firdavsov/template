@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import type { Barber, Service } from "../lib/types";
 import { createBooking, ensureClient } from "../lib/api";
 import { uz } from "../lib/uz";
+import { Check, Scissors, Clock, Calendar } from "lucide-react";
 
 interface Props {
   service: Service;
@@ -154,7 +155,7 @@ export function StepConfirm({
               />
             ) : (
               <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold border border-accent/20">
-                {displayBarber?.full_name.charAt(0) ?? "✂"}
+                {displayBarber?.full_name ? displayBarber.full_name.charAt(0) : <Scissors size={18} />}
               </div>
             )}
             <div>
@@ -170,31 +171,29 @@ export function StepConfirm({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-muted flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <Calendar size={14} className="text-accent" />
                 {uz.summary.date}
               </span>
               <span className="font-semibold">{formatDate(date)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Clock size={14} className="text-accent" />
                 {uz.summary.time}
               </span>
               <span className="font-semibold">{time}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted">{uz.summary.duration}</span>
+              <span className="text-muted flex items-center gap-1.5">
+                <Clock size={14} />
+                {uz.summary.duration}
+              </span>
               <span className="font-semibold">{service.duration_minutes} daqiqa</span>
             </div>
           </div>
 
-          <div className="h-px bg-border/50" />
+          <div className="h-px bg-border/50 my-3" />
 
-          {/* Contrast Effect: price shown last, after all the value */}
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted">{uz.summary.price}</span>
             <span className="text-xl font-extrabold text-accent">
@@ -204,7 +203,6 @@ export function StepConfirm({
         </div>
       </div>
 
-      {/* ── Contact form — framed as personalisation, not a wall ── */}
       <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-border/50">
           <div className="flex items-center justify-between">
@@ -215,8 +213,8 @@ export function StepConfirm({
                 : "Kim uchun bron?"}
             </div>
             {isReturningUser && (
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-success/10 text-success font-bold border border-success/20">
-                Saqlangan ✓
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-success/10 text-success font-bold border border-success/20 flex items-center gap-1">
+                Saqlangan <Check size={10} />
               </span>
             )}
           </div>

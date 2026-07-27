@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import type { Barber, Service } from "../lib/types";
 import { uz } from "../lib/uz";
 import { Skeleton } from "./ui/Skeleton";
+import { Check } from "lucide-react";
 
 interface Props {
   service: Service;
@@ -124,7 +125,7 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
           </span>
           {selected === "any" && (
             <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/25 flex items-center justify-center animate-scale-in">
-              <span className="text-white text-[10px] font-bold">✓</span>
+              <Check size={12} className="text-white stroke-[3]" />
             </div>
           )}
         </button>
@@ -168,7 +169,7 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
             {/* IKEA Effect: check mark confirms their choice */}
             {selected === barber.id && (
               <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/25 flex items-center justify-center animate-scale-in">
-                <span className="text-white text-[10px] font-bold">✓</span>
+                <Check size={12} className="text-white stroke-[3]" />
               </div>
             )}
           </button>

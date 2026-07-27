@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useBarberAuth } from "../../context/BarberAuthContext";
-import { Lock, Mail, Scissors } from "lucide-react";
+import { Lock, Mail, Scissors, Calendar, Users, TrendingUp } from "lucide-react";
 
 export const BarberLogin: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -32,6 +32,12 @@ export const BarberLogin: React.FC = () => {
     }
   };
 
+  const featureChips = [
+    { label: "Jadval", icon: Calendar },
+    { label: "Mijozlar", icon: Users },
+    { label: "Statistika", icon: TrendingUp },
+  ];
+
   return (
     <div className="min-h-screen bg-bg flex flex-col justify-center px-4 py-12 max-w-md mx-auto">
 
@@ -47,14 +53,18 @@ export const BarberLogin: React.FC = () => {
 
         {/* Value proposition chips */}
         <div className="flex justify-center gap-2 mt-4 flex-wrap">
-          {["📅 Jadval", "👥 Mijozlar", "📊 Statistika"].map((chip) => (
-            <span
-              key={chip}
-              className="text-[11px] font-semibold px-3 py-1 rounded-full bg-surface border border-border/50 text-muted"
-            >
-              {chip}
-            </span>
-          ))}
+          {featureChips.map((chip) => {
+            const Icon = chip.icon;
+            return (
+              <span
+                key={chip.label}
+                className="text-[11px] font-semibold px-3 py-1 rounded-full bg-surface border border-border/50 text-muted flex items-center gap-1.5"
+              >
+                <Icon size={12} className="text-accent" />
+                {chip.label}
+              </span>
+            );
+          })}
         </div>
       </div>
 

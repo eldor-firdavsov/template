@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Barber, Service } from "../lib/types";
 import { uz } from "../lib/uz";
-import { MapPin } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 
 interface Props {
   service: Service;
@@ -102,11 +102,11 @@ export function StepSuccess({
 
         {/* IKEA Effect: celebrate what they built */}
         <h2
-          className={`text-2xl font-extrabold tracking-tight transition-all duration-500 ${
+          className={`text-2xl font-extrabold tracking-tight transition-all duration-500 flex items-center justify-center gap-2 ${
             shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
           }`}
         >
-          So'rov yuborildi! 🎉
+          So'rov yuborildi! <Sparkles className="w-6 h-6 text-accent animate-pulse" />
         </h2>
         <p
           className={`text-sm text-muted mt-2 max-w-xs mx-auto leading-relaxed transition-all duration-500 delay-100 ${

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Outlet, NavLink, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { Calendar, Users, BarChart3, LogOut, Settings, Scissors, ChevronDown, X, Clock, Building, UserCog } from "lucide-react";
 import { useBarberAuth } from "../../context/BarberAuthContext";
@@ -13,6 +13,12 @@ export const BarberLayout: React.FC = () => {
   const [shopPendingCount, setShopPendingCount] = useState(0);
   const [personalPendingCount, setPersonalPendingCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Swipe & Slide Animation Tracking for iOS 26 Experience
+  const prevPathRef = useRef(location.pathname);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right" | "none">("none");
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const fetchPendingCounts = useCallback(async () => {
     if (!barber) return;
@@ -70,6 +76,42 @@ export const BarberLayout: React.FC = () => {
     setMoreOpen(false);
   }, [location.pathname]);
 
+  const isAdmin = barber?.role === "admin";
+
+  const { primaryTabs, moreItems, swipeableTabs, allSidebarItems } = React.useMemo(() => {
+    const primary = [
+      { label: "Jadval", icon: Calendar, path: "/barber/timetable" },
+      { label: "Mijozlar", icon: Users, path: "/barber/clients" },
+      { label: "Statistika", icon: BarChart3, path: "/barber/stats" },
+    ];
+    const more = [
+      { label: "Ish jadvali", icon: Clock, path: "/barber/schedule" },
+      ...(isAdmin ? [{ label: "Xizmatlar", icon: Scissors, path: "/barber/services" }] : []),
+      ...(isAdmin ? [{ label: "Salon", icon: Building, path: "/barber/shop" }] : []),
+      ...(isAdmin ? [{ label: "Jamoa", icon: UserCog, path: "/barber/team" }] : []),
+      { label: "Sozlamalar", icon: Settings, path: "/barber/settings" },
+    ];
+    return {
+      primaryTabs: primary,
+      moreItems: more,
+      swipeableTabs: [...primary, ...more],
+      allSidebarItems: [...primary, ...more],
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname) {
+      const prevIndex = swipeableTabs.findIndex((t) => prevPathRef.current.startsWith(t.path));
+      const newIndex = swipeableTabs.findIndex((t) => location.pathname.startsWith(t.path));
+      if (prevIndex !== -1 && newIndex !== -1) {
+        setSlideDirection(newIndex > prevIndex ? "left" : "right");
+      } else {
+        setSlideDirection("left");
+      }
+      prevPathRef.current = location.pathname;
+    }
+  }, [location.pathname, swipeableTabs]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
@@ -85,29 +127,36 @@ export const BarberLayout: React.FC = () => {
     return <Navigate to="/barber/register" replace />;
   }
 
-  const isAdmin = barber.role === "admin";
-
-  // ── Primary tabs: max 4 on mobile, 5 for admin ──
-  const primaryTabs = [
-    { label: "Jadval", icon: Calendar, path: "/barber/timetable" },
-    { label: "Mijozlar", icon: Users, path: "/barber/clients" },
-    { label: "Statistika", icon: BarChart3, path: "/barber/stats" },
-  ];
-
-  // ── "More" menu items — less-used pages ──
-  const moreItems = [
-    { label: "Ish jadvali", icon: Clock, path: "/barber/schedule" },
-    ...(isAdmin ? [{ label: "Xizmatlar", icon: Scissors, path: "/barber/services" }] : []),
-    ...(isAdmin ? [{ label: "Salon", icon: Building, path: "/barber/shop" }] : []),
-    ...(isAdmin ? [{ label: "Jamoa", icon: UserCog, path: "/barber/team" }] : []),
-    { label: "Sozlamalar", icon: Settings, path: "/barber/settings" },
-  ];
-
-  // All items for desktop sidebar
-  const allSidebarItems = [...primaryTabs, ...moreItems];
-
   // Check if current path is in "more" items (to highlight the more button)
   const isMoreActive = moreItems.some((item) => location.pathname.startsWith(item.path));
+  const currentTabIndex = swipeableTabs.findIndex((t) => location.pathname.startsWith(t.path));
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches[0]) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null || !e.changedTouches[0]) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Check if horizontal swipe exceeds 50px threshold and is greater than vertical movement
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0 && currentTabIndex < swipeableTabs.length - 1 && currentTabIndex !== -1) {
+        // Swipe left -> next tab
+        const nextTab = swipeableTabs[currentTabIndex + 1];
+        if (nextTab) navigate(nextTab.path);
+      } else if (deltaX > 0 && currentTabIndex > 0) {
+        // Swipe right -> prev tab
+        const prevTab = swipeableTabs[currentTabIndex - 1];
+        if (prevTab) navigate(prevTab.path);
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -229,8 +278,8 @@ export const BarberLayout: React.FC = () => {
         </button>
       </aside>
 
-      {/* Mobile Top Header */}
-      <header className="md:hidden bg-card border-b border-border/50 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+      {/* Mobile Top Header - iOS 26 Liquid Glass */}
+      <header className="md:hidden liquid-glass-nav border-b border-white/40 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-sm shadow-accent/20">
             <Scissors size={16} className="text-white" />
@@ -265,14 +314,29 @@ export const BarberLayout: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content View */}
-      <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full pb-24 md:pb-8">
-        <Outlet />
+      {/* Main Content View with Swipe Gesture & iOS 26 Liquid Glass Slide */}
+      <main 
+        className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full pb-28 md:pb-8 overflow-x-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div 
+          key={location.pathname} 
+          className={
+            slideDirection === "left" 
+              ? "animate-slide-left" 
+              : slideDirection === "right" 
+              ? "animate-slide-right" 
+              : "animate-fade-in"
+          }
+        >
+          <Outlet />
+        </div>
       </main>
 
-      {/* ── Mobile Bottom Navigation: Floating iOS 26 Capsule Bar ── */}
-      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-30 ios-glass rounded-3xl border border-white/60 shadow-lg shadow-black/10">
-        <div className="flex items-center justify-around py-2 px-3">
+      {/* ── Mobile Bottom Navigation: Floating iOS 26 Liquid Glass Capsule Bar ── */}
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-30 liquid-glass-nav rounded-[28px] py-1.5 px-2">
+        <div className="flex items-center justify-around relative">
           {primaryTabs.map((item) => {
             const Icon = item.icon;
             const isTimetable = item.label === "Jadval";
@@ -281,15 +345,15 @@ export const BarberLayout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-0.5 py-1 px-3.5 rounded-2xl text-[10px] font-bold transition-all ios-press relative ${
-                    isActive ? "text-accent bg-accent/10 shadow-sm" : "text-muted hover:text-primary"
+                  `flex flex-col items-center gap-1 py-1.5 px-3.5 rounded-2xl text-[10px] font-bold transition-all duration-300 ios-press relative z-10 ${
+                    isActive ? "text-white liquid-glass-pill scale-105" : "text-muted hover:text-primary"
                   }`
                 }
               >
                 <div className="relative">
-                  <Icon size={20} />
+                  <Icon size={20} className="transition-transform duration-300" />
                   {isTimetable && (isAdmin ? shopPendingCount > 0 : personalPendingCount > 0) && (
-                    <span className="absolute -top-1 -right-2 w-4 h-4 bg-accent text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-sm">
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] bg-danger text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md px-1 animate-urgency">
                       {isAdmin ? shopPendingCount : personalPendingCount}
                     </span>
                   )}
@@ -302,12 +366,12 @@ export const BarberLayout: React.FC = () => {
           {/* "More" tab — opens iOS bottom sheet */}
           <button
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center gap-0.5 py-1 px-3.5 rounded-2xl text-[10px] font-bold transition-all ios-press ${
-              isMoreActive ? "text-accent bg-accent/10 shadow-sm" : "text-muted hover:text-primary"
+            className={`flex flex-col items-center gap-1 py-1.5 px-3.5 rounded-2xl text-[10px] font-bold transition-all duration-300 ios-press relative z-10 ${
+              isMoreActive ? "text-white liquid-glass-pill scale-105" : "text-muted hover:text-primary"
             }`}
           >
             <div className="relative">
-              <ChevronDown size={20} className={`transition-transform duration-200 ${moreOpen ? "rotate-180" : ""}`} />
+              <ChevronDown size={20} className={`transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
             </div>
             <span className="tracking-tight">Ko'proq</span>
           </button>

@@ -3,6 +3,7 @@ import type { Barber, Service } from "../lib/types";
 import { fetchAvailableSlots } from "../lib/api";
 import { uz } from "../lib/uz";
 import { Skeleton } from "./ui/Skeleton";
+import { Sun, SunMedium, Moon } from "lucide-react";
 
 interface Props {
   service: Service;
@@ -242,7 +243,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
           {morningSlots.length > 0 && (
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-muted mb-2.5 px-1 flex items-center gap-1.5">
-                <span>🌅</span> Tong
+                <Sun className="w-3.5 h-3.5 text-amber-500" /> Tong
               </h3>
               <div className="grid grid-cols-3 gap-2">
                 {morningSlots.map((slot) => (
@@ -260,7 +261,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
           {afternoonSlots.length > 0 && (
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-muted mb-2.5 px-1 flex items-center gap-1.5">
-                <span>☀️</span> Kunduz
+                <SunMedium className="w-3.5 h-3.5 text-amber-400" /> Kunduz
               </h3>
               <div className="grid grid-cols-3 gap-2">
                 {afternoonSlots.map((slot) => (
@@ -278,7 +279,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
           {eveningSlots.length > 0 && (
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-muted mb-2.5 px-1 flex items-center gap-1.5">
-                <span>🌆</span> Kechqurun
+                <Moon className="w-3.5 h-3.5 text-indigo-400" /> Kechqurun
               </h3>
               <div className="grid grid-cols-3 gap-2">
                 {eveningSlots.map((slot) => (
