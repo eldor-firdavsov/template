@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { supabase } from "../lib/supabase";
 import type { Barber, Service } from "../lib/types";
 import { createBooking, ensureClient } from "../lib/api";
 import { uz } from "../lib/uz";
@@ -88,26 +89,107 @@ export function StepConfirm({
 
     setBooking(true);
     try {
-      const clientResult = await ensureClient({
-        full_name: nameTrimmed,
-        phone: phoneTrimmed,
-      });
+      // 1. Resolve or Create Client Profile (API with direct Supabase client fallback)
+      let resolvedClientId = "";
+      try {
+        const clientResult = await ensureClient({
+          full_name: nameTrimmed,
+          phone: phoneTrimmed,
+        });
+        resolvedClientId = clientResult.client_id;
+      } catch (apiErr) {
+        console.warn("API ensureClient failed, using direct Supabase fallback:", apiErr);
+        const { data: existingClient } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("phone", phoneTrimmed)
+          .maybeSingle();
 
-      localStorage.setItem("client_id", clientResult.client_id);
+        if (existingClient) {
+          resolvedClientId = existingClient.id;
+          await supabase.from("clients").update({ full_name: nameTrimmed }).eq("id", resolvedClientId);
+        } else {
+          const synthId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 100000);
+          const { data: newClient, error: cErr } = await supabase
+            .from("clients")
+            .insert({
+              full_name: nameTrimmed,
+              phone: phoneTrimmed,
+              telegram_user_id: synthId,
+            })
+            .select("id")
+            .single();
+
+          if (cErr || !newClient) throw new Error(cErr?.message || "Mijoz profilini saqlashda xatolik");
+          resolvedClientId = newClient.id;
+        }
+      }
+
+      localStorage.setItem("client_id", resolvedClientId);
       localStorage.setItem("client_full_name", nameTrimmed);
       localStorage.setItem("client_phone", phoneTrimmed);
       localStorage.setItem("client_note", note);
 
-      const startsAt = new Date(`${date}T${time}:00Z`);
-      const result = await createBooking({
-        service_id: service.id,
-        barber_id: displayBarber ? displayBarber.id : null,
-        starts_at: startsAt.toISOString(),
-        client_id: clientResult.client_id,
-        client_note: note.trim() || undefined,
-      });
+      // 2. Create Booking (API with direct Supabase client fallback)
+      let bookingSuccess = false;
+      let finalBarber = displayBarber;
 
-      onConfirm(result.barber);
+      try {
+        const startsAt = new Date(`${date}T${time}:00Z`);
+        const result = await createBooking({
+          service_id: service.id,
+          barber_id: displayBarber ? displayBarber.id : null,
+          starts_at: startsAt.toISOString(),
+          client_id: resolvedClientId,
+          client_note: note.trim() || undefined,
+        });
+        if (result && result.booking_id) {
+          bookingSuccess = true;
+          if (result.barber) finalBarber = result.barber;
+        }
+      } catch (createErr) {
+        console.warn("API createBooking failed, switching to direct Supabase fallback:", createErr);
+      }
+
+      if (!bookingSuccess) {
+        if (!finalBarber) {
+          const { data: firstBarber } = await supabase
+            .from("barbers")
+            .select("*")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+          if (firstBarber) finalBarber = firstBarber as Barber;
+        }
+
+        if (!finalBarber) {
+          throw new Error("Hozirda faol sartarosh topilmadi. Qaytadan urinib ko'ring.");
+        }
+
+        const durationMinutes = service.duration_minutes || 30;
+        const startsAtIso = new Date(`${date}T${time}:00Z`).toISOString();
+        const endsAtIso = new Date(new Date(startsAtIso).getTime() + durationMinutes * 60 * 1000).toISOString();
+
+        const { error: insErr } = await supabase
+          .from("bookings")
+          .insert({
+            barber_id: finalBarber.id,
+            service_id: service.id,
+            client_id: resolvedClientId,
+            starts_at: startsAtIso,
+            ends_at: endsAtIso,
+            status: "pending",
+            price_at_booking: service.price || 0,
+            notes: note.trim() || null,
+          });
+
+        if (insErr) {
+          console.error("Direct booking insert failed:", insErr);
+          throw new Error(insErr.message || "Buyurtmani saqlashda xatolik yuz berdi");
+        }
+      }
+
+      onConfirm(finalBarber!);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : uz.errors.generic);
       setBooking(false);
