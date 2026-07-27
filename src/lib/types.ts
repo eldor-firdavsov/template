@@ -78,6 +78,7 @@ export interface Booking {
   cancelled_at: string | null;
   cancelled_by: "client" | "barber" | "admin" | null;
   notes?: string | null;
+  client_note?: string | null;
   responded_at?: string | null;
   responded_by?: string | null;
 }

@@ -409,10 +409,10 @@ export const BarberTimetable: React.FC = () => {
                   {new Date(activeDecisionBooking.starts_at).toLocaleDateString("uz-UZ")} • {formatTime(activeDecisionBooking.starts_at)}
                 </span>
               </div>
-              {activeDecisionBooking.notes && (
+              {(activeDecisionBooking.notes || activeDecisionBooking.client_note) && (
                 <div className="border-t border-white/5 pt-2 mt-2">
                   <span className="text-text-secondary block mb-1">Mijoz izohi:</span>
-                  <p className="text-[11px] text-text italic">"{activeDecisionBooking.notes}"</p>
+                  <p className="text-[11px] text-text italic">"{activeDecisionBooking.notes || activeDecisionBooking.client_note}"</p>
                 </div>
               )}
             </div>

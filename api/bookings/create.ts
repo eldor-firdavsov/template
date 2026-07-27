@@ -7,11 +7,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const body = parseBody(req.body);
-  const { service_id, barber_id, starts_at, client_id } = body as {
+  const { service_id, barber_id, starts_at, client_id, client_note, notes } = body as {
     service_id?: string;
     barber_id?: string;
     starts_at?: string;
     client_id?: string;
+    client_note?: string;
+    notes?: string;
   };
 
   if (!service_id || !barber_id || !starts_at || !client_id) {
@@ -176,19 +178,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const endDt = new Date(startDt.getTime() + assignedDuration * 60 * 1000);
 
   // Create the booking as confirmed
-  const { data: booking, error: bookingErr } = await supabaseAdmin
+  const basePayload = {
+    barber_id: assignedBarber.id,
+    service_id,
+    client_id: existingClient.id,
+    starts_at: startDt.toISOString(),
+    ends_at: endDt.toISOString(),
+    status: "confirmed",
+    price_at_booking: service.price,
+  };
+
+  const noteVal = client_note || notes || null;
+  let { data: booking, error: bookingErr } = await supabaseAdmin
     .from("bookings")
     .insert({
-      barber_id: assignedBarber.id,
-      service_id,
-      client_id: existingClient.id,
-      starts_at: startDt.toISOString(),
-      ends_at: endDt.toISOString(),
-      status: "confirmed",
-      price_at_booking: service.price,
+      ...basePayload,
+      client_note: noteVal,
+      notes: noteVal,
     })
     .select("id")
     .single();
+
+  if (bookingErr) {
+    console.warn("Retrying createBooking insert without note columns due to schema difference:", bookingErr);
+    const retry = await supabaseAdmin
+      .from("bookings")
+      .insert(basePayload)
+      .select("id")
+      .single();
+    booking = retry.data;
+    bookingErr = retry.error;
+  }
 
   if (bookingErr || !booking) {
     console.error("Booking creation failed:", bookingErr);
