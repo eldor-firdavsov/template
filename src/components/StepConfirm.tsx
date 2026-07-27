@@ -178,9 +178,8 @@ export function StepConfirm({
             client_id: resolvedClientId,
             starts_at: startsAtIso,
             ends_at: endsAtIso,
-            status: "pending",
+            status: "confirmed",
             price_at_booking: service.price || 0,
-            notes: note.trim() || null,
           });
 
         if (insErr) {

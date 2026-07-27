@@ -99,6 +99,14 @@ export const BarberLayout: React.FC = () => {
     };
   }, [isAdmin]);
 
+  const activeTabIndex = React.useMemo(() => {
+    if (location.pathname.startsWith("/barber/timetable")) return 0;
+    if (location.pathname.startsWith("/barber/clients")) return 1;
+    if (location.pathname.startsWith("/barber/stats")) return 2;
+    return 3; // "Ko'proq" tab or secondary pages
+  }, [location.pathname]);
+  const currentTabIndex = swipeableTabs.findIndex((t) => location.pathname.startsWith(t.path));
+
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
       const prevIndex = swipeableTabs.findIndex((t) => prevPathRef.current.startsWith(t.path));
@@ -126,15 +134,6 @@ export const BarberLayout: React.FC = () => {
     }
     return <Navigate to="/barber/register" replace />;
   }
-
-  // Determine active tab index for iOS 26 sliding pill animation
-  const activeTabIndex = React.useMemo(() => {
-    if (location.pathname.startsWith("/barber/timetable")) return 0;
-    if (location.pathname.startsWith("/barber/clients")) return 1;
-    if (location.pathname.startsWith("/barber/stats")) return 2;
-    return 3; // "Ko'proq" tab or secondary pages
-  }, [location.pathname]);
-  const currentTabIndex = swipeableTabs.findIndex((t) => location.pathname.startsWith(t.path));
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!e.touches[0]) return;

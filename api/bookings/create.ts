@@ -175,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const assignedDuration = selectedCandidate.duration;
   const endDt = new Date(startDt.getTime() + assignedDuration * 60 * 1000);
 
-  // Create the booking as PENDING
+  // Create the booking as confirmed
   const { data: booking, error: bookingErr } = await supabaseAdmin
     .from("bookings")
     .insert({
@@ -184,7 +184,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       client_id: existingClient.id,
       starts_at: startDt.toISOString(),
       ends_at: endDt.toISOString(),
-      status: "pending",
+      status: "confirmed",
       price_at_booking: service.price,
     })
     .select("id")
