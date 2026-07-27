@@ -45,7 +45,9 @@ export const BarberLogin: React.FC = () => {
     if (signInError) {
       let msg = signInError.message || "Email yoki parol noto'g'ri.";
       if (msg.includes("Load failed") || msg.includes("Failed to fetch") || msg.includes("Network") || msg.includes("network")) {
-        msg = "Tarmoq xatoligi (Load failed). Iltimos, internet ulanishingizni, VPN yoki brauzeringizdagi ad-blocker (reklama to'sqinlik qoplamalari)ni o'chirib qayta urinib ko'ring.";
+        msg = "Server bilan aloqa uzildi (Tarmoq xatosi). Iltimos, internet ulanishingizni tekshiring yoki sahifani yangilab qayta urinib ko'ring.";
+      } else if (msg.includes("rate limit") || msg.includes("too many") || msg.includes("429")) {
+        msg = "Juda ko'p urinish bo'ldi. Iltimos, bir oz kutib qayta urinib ko'ring.";
       } else if (msg.includes("Invalid login credentials") || msg.includes("invalid claim") || msg.includes("user not found")) {
         msg = "Email manzil yoki parol noto'g'ri kiritildi.";
       }
