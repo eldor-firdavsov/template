@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Determine which barbers to check
-  let barberIds: string[];
+  let barberIds: string[] = [];
   if (barber_id) {
     barberIds = [barber_id];
   } else {
@@ -33,18 +33,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select("barber_id")
       .eq("service_id", service_id);
 
-    if (!bsData || bsData.length === 0) {
-      return res.json({});
+    if (bsData && bsData.length > 0) {
+      const bsBarberIds = bsData.map((bs) => bs.barber_id);
+      const { data: activeBarbers } = await supabaseAdmin
+        .from("barbers")
+        .select("id")
+        .in("id", bsBarberIds)
+        .eq("is_active", true);
+      barberIds = activeBarbers?.map((b) => b.id) ?? [];
     }
-    barberIds = bsData.map((bs) => bs.barber_id);
 
-    const { data: activeBarbers } = await supabaseAdmin
-      .from("barbers")
-      .select("id")
-      .in("id", barberIds)
-      .eq("is_active", true);
-
-    barberIds = activeBarbers?.map((b) => b.id) ?? [];
+    if (barberIds.length === 0) {
+      const { data: allActiveBarbers } = await supabaseAdmin
+        .from("barbers")
+        .select("id")
+        .eq("is_active", true);
+      barberIds = allActiveBarbers?.map((b) => b.id) ?? [];
+    }
   }
 
   if (barberIds.length === 0) {

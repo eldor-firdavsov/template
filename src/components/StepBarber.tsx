@@ -23,19 +23,17 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
         .select("barber_id")
         .eq("service_id", service.id);
 
-      if (!bsData || bsData.length === 0) {
-        setLoading(false);
-        return;
+      let barberIds: string[] = [];
+      if (bsData && bsData.length > 0) {
+        barberIds = bsData.map((bs) => bs.barber_id);
       }
 
-      const barberIds = bsData.map((bs) => bs.barber_id);
-      const { data: barberData } = await supabase
-        .from("barbers")
-        .select("*")
-        .in("id", barberIds)
-        .eq("is_active", true)
-        .order("sort_order");
+      let query = supabase.from("barbers").select("*").eq("is_active", true).order("sort_order");
+      if (barberIds.length > 0) {
+        query = query.in("id", barberIds);
+      }
 
+      const { data: barberData } = await query;
       if (barberData) setBarbers(barberData as Barber[]);
       setLoading(false);
     }
