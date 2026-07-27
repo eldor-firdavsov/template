@@ -340,7 +340,7 @@ export const BarberLayout: React.FC = () => {
       </main>
 
       {/* ── Mobile Bottom Navigation: Floating iOS 26 Liquid Glass Capsule Bar with Sliding Pill ── */}
-      <nav className="md:hidden fixed bottom-3 left-3 right-3 z-30 liquid-glass-nav rounded-[26px] p-1.5 shadow-2xl overflow-hidden">
+      <nav className="md:hidden fixed bottom-3 left-3 right-3 z-50 liquid-glass-nav rounded-[26px] p-1.5 shadow-2xl">
         <div className="relative w-full">
           {/* iOS 26 Native Sliding Liquid Glass Pill Indicator */}
           <div
@@ -352,23 +352,22 @@ export const BarberLayout: React.FC = () => {
             <div className="w-full h-full rounded-2xl liquid-glass-pill shadow-md" />
           </div>
 
-          <div className="grid grid-cols-4 items-center justify-items-center gap-0 relative z-10 w-full">
+          <div className="grid grid-cols-4 items-center justify-items-center gap-0 relative z-10 w-full pointer-events-auto">
             {primaryTabs.map((item, idx) => {
               const Icon = item.icon;
               const isTimetable = item.label === "Jadval";
               const isActive = activeTabIndex === idx;
 
               return (
-                <NavLink
+                <button
                   key={item.path}
-                  to={item.path}
-                  className={
-                    `w-full flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-[11px] font-bold transition-colors duration-200 ios-press relative z-10 select-none ${
-                      isActive ? "text-white scale-[1.02]" : "text-muted hover:text-primary"
-                    }`
-                  }
+                  type="button"
+                  onClick={() => navigate(item.path)}
+                  className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-[11px] font-bold transition-colors duration-200 ios-press relative z-20 select-none cursor-pointer ${
+                    isActive ? "text-white scale-[1.02]" : "text-muted hover:text-primary"
+                  }`}
                 >
-                  <div className="relative">
+                  <div className="relative pointer-events-none">
                     <Icon size={21} className="transition-transform duration-300" />
                     {isTimetable && (isAdmin ? shopPendingCount > 0 : personalPendingCount > 0) && (
                       <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] bg-danger text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md px-1 animate-urgency">
@@ -376,22 +375,27 @@ export const BarberLayout: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <span className="tracking-tight truncate max-w-full text-center leading-tight mt-0.5">{item.label}</span>
-                </NavLink>
+                  <span className="tracking-tight truncate max-w-full text-center leading-tight mt-0.5 pointer-events-none">
+                    {item.label}
+                  </span>
+                </button>
               );
             })}
 
             {/* "More" tab — opens iOS bottom sheet */}
             <button
+              type="button"
               onClick={() => setMoreOpen(true)}
-              className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-[11px] font-bold transition-colors duration-200 ios-press relative z-10 select-none ${
+              className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-[11px] font-bold transition-colors duration-200 ios-press relative z-20 select-none cursor-pointer ${
                 activeTabIndex === 3 ? "text-white scale-[1.02]" : "text-muted hover:text-primary"
               }`}
             >
-              <div className="relative">
+              <div className="relative pointer-events-none">
                 <ChevronDown size={21} className={`transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
               </div>
-              <span className="tracking-tight truncate max-w-full text-center leading-tight mt-0.5">Ko'proq</span>
+              <span className="tracking-tight truncate max-w-full text-center leading-tight mt-0.5 pointer-events-none">
+                Ko'proq
+              </span>
             </button>
           </div>
         </div>
