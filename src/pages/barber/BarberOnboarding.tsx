@@ -330,54 +330,65 @@ export const BarberOnboarding: React.FC = () => {
             {step > 0 ? (
               <button
                 onClick={goBack}
-                className="flex items-center gap-1 text-xs font-bold text-text-secondary hover:text-text transition-colors"
+                className="flex items-center gap-1 text-xs font-bold text-text-secondary hover:text-text transition-colors bg-surface/80 hover:bg-surface px-3 py-1.5 rounded-xl border border-border/50 active:scale-95"
               >
                 <ChevronLeft size={16} /> Ortga
               </button>
             ) : (
-              <div className="w-10" />
-            )}
-            <div className="flex-1 px-4">
-              <div className="flex gap-2">
-                {STEPS.map((s, i) => (
-                  <div
-                    key={s.key}
-                    className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
-                      i <= step ? "bg-accent" : "bg-white/10"
-                    }`}
-                  />
-                ))}
+              <div className="text-[11px] font-black uppercase tracking-wider text-accent bg-accent/10 px-3 py-1.5 rounded-xl border border-accent/20">
+                Onboarding
               </div>
+            )}
+
+            <div className="flex items-center gap-1.5 text-xs font-black text-text bg-surface px-3 py-1.5 rounded-xl border border-border/40">
+              <span className="text-accent">{step + 1}</span>
+              <span className="text-muted">/</span>
+              <span className="text-muted">{STEPS.length}</span>
             </div>
-            <div className="w-10" />
           </div>
 
-          <div className="flex justify-between items-center px-1">
+          {/* Progress Bar */}
+          <div className="w-full h-2 bg-surface rounded-full overflow-hidden p-0.5 border border-border/40">
+            <div
+              className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+            />
+          </div>
+
+          {/* 5 Step Icons & Labels Grid */}
+          <div className="grid grid-cols-5 gap-1 items-center justify-items-center w-full">
             {STEPS.map((s, i) => {
               const Icon = s.icon;
               const isActive = i === step;
               const isDone = i < step;
               return (
-                <div key={s.key} className="flex flex-col items-center gap-1.5">
+                <button
+                  key={s.key}
+                  disabled={i > step}
+                  onClick={() => i < step && setStep(i)}
+                  className={`w-full flex flex-col items-center gap-1 transition-all duration-300 select-none ${
+                    i <= step ? "cursor-pointer" : "cursor-default opacity-60"
+                  }`}
+                >
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
                       isActive
-                        ? "bg-accent text-white shadow-lg shadow-accent/25"
+                        ? "bg-accent text-white shadow-lg shadow-accent/30 ring-2 ring-accent/40 scale-105"
                         : isDone
-                        ? "bg-accent/15 text-accent"
-                        : "bg-bg text-text-secondary border border-white/5"
+                        ? "bg-accent/15 text-accent border border-accent/30"
+                        : "bg-surface text-muted border border-border/50"
                     }`}
                   >
-                    {isDone ? <Check size={16} /> : <Icon size={16} />}
+                    {isDone ? <Check size={15} strokeWidth={3} /> : <Icon size={15} />}
                   </div>
                   <span
-                    className={`text-[9px] font-bold uppercase tracking-wider ${
-                      isActive ? "text-text" : "text-text-secondary"
+                    className={`text-[9.5px] font-extrabold tracking-tight truncate w-full text-center leading-tight ${
+                      isActive ? "text-primary font-black" : isDone ? "text-accent" : "text-muted"
                     }`}
                   >
                     {s.label}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
