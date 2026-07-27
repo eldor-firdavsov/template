@@ -34,7 +34,31 @@ export function StepService({ onSelect }: Props) {
           .maybeSingle(),
       ]);
 
-      if (!error && data) setServices(data as Service[]);
+      let loadedServices = (data as Service[]) || [];
+
+      // If DB has 0 active services, seed standard default services into DB
+      if (!error && loadedServices.length === 0) {
+        const defaultServices = [
+          { name: "Soch olish", category: "Soch", duration_minutes: 30, price: 50000, is_active: true, sort_order: 1 },
+          { name: "Soch + Soqol", category: "Soch", duration_minutes: 45, price: 80000, is_active: true, sort_order: 2 },
+          { name: "Soqol shakllantirish", category: "Soqol", duration_minutes: 20, price: 30000, is_active: true, sort_order: 3 },
+          { name: "Bolalar soch olishi", category: "Bolalar", duration_minutes: 25, price: 40000, is_active: true, sort_order: 4 },
+        ];
+
+        const { data: seededData } = await supabase
+          .from("services")
+          .insert(defaultServices)
+          .select("*");
+
+        if (seededData && seededData.length > 0) {
+          loadedServices = seededData as Service[];
+        } else {
+          // Local fallback representation if RLS blocks insert
+          loadedServices = defaultServices.map((s, idx) => ({ ...s, id: `default-${idx}` })) as Service[];
+        }
+      }
+
+      setServices(loadedServices);
       if (loc) setShopInfo(loc);
       setLoading(false);
     }
