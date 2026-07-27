@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { Lock, Mail, ArrowLeft, Scissors, Check } from "lucide-react";
@@ -11,20 +11,6 @@ export const BarberRegister: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
-
-  useEffect(() => {
-    async function checkExistingAdmin() {
-      const { count, error: countErr } = await supabase
-        .from("barbers")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "admin");
-
-      if (!countErr && count !== null && count > 0) {
-        navigate("/barber/login");
-      }
-    }
-    checkExistingAdmin();
-  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +33,13 @@ export const BarberRegister: React.FC = () => {
     const { error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password });
 
     if (signUpError) {
-      setError(signUpError.message || "Ro'yxatdan o'tishda xatolik.");
+      let msg = signUpError.message || "Ro'yxatdan o'tishda xatolik.";
+      if (msg.includes("Load failed") || msg.includes("Failed to fetch") || msg.includes("Network") || msg.includes("network")) {
+        msg = "Tarmoq xatoligi (Load failed). Iltimos, internet ulanishingizni, VPN yoki brauzeringizdagi ad-blocker (reklama to'sqinlik qoplamalari)ni o'chirib qayta urinib ko'ring.";
+      } else if (msg.includes("User already registered") || msg.includes("already exists")) {
+        msg = "Bu email manzil allaqachon ro'yxatdan o'tgan.";
+      }
+      setError(msg);
       setSubmitting(false);
     } else {
       navigate("/barber/onboarding");

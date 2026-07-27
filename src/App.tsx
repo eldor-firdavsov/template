@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClientBookingApp } from "./components/ClientBookingApp";
 import { BarberAuthProvider } from "./context/BarberAuthContext";
@@ -15,6 +16,14 @@ import { BarberSettings } from "./pages/barber/BarberSettings";
 import { BarberTeam } from "./pages/barber/BarberTeam";
 
 export default function App() {
+  useEffect(() => {
+    const hash = window.location.hash;
+    const search = window.location.search;
+    if ((hash.includes("error=") || search.includes("error=")) && !window.location.pathname.startsWith("/barber/login")) {
+      window.location.replace(`/barber/login${search}${hash}`);
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <BarberAuthProvider>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useBarberAuth } from "../../context/BarberAuthContext";
 import { Lock, Mail, Scissors, Calendar, Users, TrendingUp } from "lucide-react";
@@ -11,6 +11,24 @@ export const BarberLogin: React.FC = () => {
 
   const { signIn } = useBarberAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    const search = window.location.search;
+    if (hash.includes("error=") || search.includes("error=")) {
+      const params = new URLSearchParams(hash.replace("#", "") || search.replace("?", ""));
+      const errCode = params.get("error_code") || params.get("error");
+      const errDesc = params.get("error_description");
+      if (errCode === "otp_expired" || (errDesc && errDesc.includes("expired"))) {
+        setError("Email tasdiqlash havolasi eskirgan yoki avval ishlatilgan. Iltimos, pastdagi shakl orqali tizimga kirishga urinib ko'ring.");
+      } else if (errDesc) {
+        setError(`Tasdiqlash xatoligi: ${decodeURIComponent(errDesc.replace(/\+/g, " "))}`);
+      } else {
+        setError("Hisobni tasdiqlashda xatolik yuz berdi. Qayta urinib ko'ring.");
+      }
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +43,13 @@ export const BarberLogin: React.FC = () => {
     const { error: signInError } = await signIn(email.trim(), password);
 
     if (signInError) {
-      setError(signInError.message || "Email yoki parol noto'g'ri.");
+      let msg = signInError.message || "Email yoki parol noto'g'ri.";
+      if (msg.includes("Load failed") || msg.includes("Failed to fetch") || msg.includes("Network") || msg.includes("network")) {
+        msg = "Tarmoq xatoligi (Load failed). Iltimos, internet ulanishingizni, VPN yoki brauzeringizdagi ad-blocker (reklama to'sqinlik qoplamalari)ni o'chirib qayta urinib ko'ring.";
+      } else if (msg.includes("Invalid login credentials") || msg.includes("invalid claim") || msg.includes("user not found")) {
+        msg = "Email manzil yoki parol noto'g'ri kiritildi.";
+      }
+      setError(msg);
       setSubmitting(false);
     } else {
       navigate("/barber/timetable");
