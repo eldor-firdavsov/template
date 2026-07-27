@@ -20,12 +20,39 @@ export function StepService({ onSelect }: Props) {
 
   useEffect(() => {
     async function load() {
+      // 1. Get active barbers
+      const { data: activeBarbers } = await supabase
+        .from("barbers")
+        .select("id")
+        .eq("is_active", true);
+      const activeBarberIds = (activeBarbers || []).map((b) => b.id);
+
+      // 2. Get valid service IDs mapped to active barbers
+      let validServiceIds: string[] = [];
+      if (activeBarberIds.length > 0) {
+        const { data: bsData } = await supabase
+          .from("barber_services")
+          .select("service_id")
+          .in("barber_id", activeBarberIds);
+        if (bsData && bsData.length > 0) {
+          validServiceIds = Array.from(new Set(bsData.map((bs) => bs.service_id)));
+        }
+      }
+
+      // 3. Build query for active services
+      let query = supabase
+        .from("services")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      // Filter out unmapped template service cards if mappings exist
+      if (validServiceIds.length > 0) {
+        query = query.in("id", validServiceIds);
+      }
+
       const [{ data, error }, { data: loc }] = await Promise.all([
-        supabase
-          .from("services")
-          .select("*")
-          .eq("is_active", true)
-          .order("sort_order"),
+        query,
         supabase
           .from("locations")
           .select("name, address")

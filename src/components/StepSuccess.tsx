@@ -226,18 +226,18 @@ export function StepSuccess({
         }`}
       >
         <button
-          onClick={onBookAnother}
+          onClick={onMyBookings}
           className="w-full py-4 rounded-2xl bg-accent font-bold text-white text-sm
             hover:bg-accent-hover active:scale-[0.98] transition-all shadow-lg shadow-accent/25"
         >
-          {uz.actions.bookAnother}
+          {uz.actions.viewMyBookings}
         </button>
         <button
-          onClick={onMyBookings}
+          onClick={onBookAnother}
           className="w-full py-3.5 rounded-2xl border-2 border-border text-sm font-bold text-primary
             hover:bg-surface hover:border-primary/20 active:scale-[0.98] transition-all"
         >
-          {uz.actions.viewMyBookings}
+          {uz.actions.goHome}
         </button>
       </div>
     </div>

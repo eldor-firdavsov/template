@@ -177,14 +177,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const assignedDuration = selectedCandidate.duration;
   const endDt = new Date(startDt.getTime() + assignedDuration * 60 * 1000);
 
-  // Create the booking as confirmed
+  // Create the booking as pending
   const basePayload = {
     barber_id: assignedBarber.id,
     service_id,
     client_id: existingClient.id,
     starts_at: startDt.toISOString(),
     ends_at: endDt.toISOString(),
-    status: "confirmed",
+    status: "pending",
     price_at_booking: service.price,
   };
 

@@ -178,7 +178,7 @@ export function StepConfirm({
             client_id: resolvedClientId,
             starts_at: startsAtIso,
             ends_at: endsAtIso,
-            status: "confirmed",
+            status: "pending",
             price_at_booking: service.price || 0,
           });
 

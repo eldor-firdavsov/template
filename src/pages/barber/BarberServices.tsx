@@ -85,14 +85,29 @@ export const BarberServices: React.FC = () => {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("services").insert({
+        const { data: newSvc, error } = await supabase.from("services").insert({
           name: name.trim(),
           category: category.trim(),
           duration_minutes: Number(duration),
           price: Number(price),
-        });
+        }).select("id").single();
 
         if (error) throw error;
+
+        // Map newly created service to all active staff so it's immediately available to clients
+        if (newSvc) {
+          const { data: activeBarbers } = await supabase
+            .from("barbers")
+            .select("id")
+            .eq("is_active", true);
+          if (activeBarbers && activeBarbers.length > 0) {
+            const mappings = activeBarbers.map((b) => ({
+              barber_id: b.id,
+              service_id: newSvc.id,
+            }));
+            await supabase.from("barber_services").insert(mappings);
+          }
+        }
       }
 
       setModalOpen(false);

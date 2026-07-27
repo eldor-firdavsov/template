@@ -99,6 +99,7 @@ export const uz = {
     confirming: "Yuborilmoqda...",
     bookAnother: "Yana navbat olish",
     viewMyBookings: "Navbatlarimni ko'rish",
+    goHome: "Bosh sahifaga o'tish",
     back: "Orqaga",
     cancel: "Bekor qilish",
     cancelling: "Bekor qilinmoqda...",
