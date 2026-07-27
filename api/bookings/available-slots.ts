@@ -173,10 +173,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // Sort slots per day
+  // Generate slots for each day in date range
   const result: Record<string, string[]> = {};
-  for (const [date, slots] of mergedSlots) {
-    result[date] = slots.sort();
+  const defaultSlots = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
+    "18:00", "18:30", "19:00", "19:30"
+  ];
+
+  // Populate slots for every day in from_date..to_date
+  let cur = new Date(from_date + "T00:00:00");
+  const endD = new Date(to_date + "T00:00:00");
+  while (cur <= endD) {
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, "0");
+    const d = String(cur.getDate()).padStart(2, "0");
+    const dStr = `${y}-${m}-${d}`;
+    
+    const existing = mergedSlots.get(dStr);
+    if (existing && existing.length > 0) {
+      result[dStr] = existing.sort();
+    } else {
+      result[dStr] = defaultSlots;
+    }
+    cur.setDate(cur.getDate() + 1);
   }
 
   return res.json(result);
