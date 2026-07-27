@@ -324,13 +324,13 @@ export const BarberOnboarding: React.FC = () => {
     <section className="min-h-screen bg-bg flex items-center justify-center p-4">
       <div className="w-full max-w-lg bg-card rounded-3xl border border-white/10 p-6 space-y-6 shadow-2xl relative">
         
-        {/* Header navigation controls */}
-        <div className="space-y-4">
+        {/* Header navigation controls: Single Current Step Display */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             {step > 0 ? (
               <button
                 onClick={goBack}
-                className="flex items-center gap-1 text-xs font-bold text-text-secondary hover:text-text transition-colors bg-surface/80 hover:bg-surface px-3 py-1.5 rounded-xl border border-border/50 active:scale-95"
+                className="flex items-center gap-1 text-xs font-extrabold text-text-secondary hover:text-text transition-colors bg-surface/80 hover:bg-surface px-3 py-1.5 rounded-xl border border-border/50 active:scale-95"
               >
                 <ChevronLeft size={16} /> Ortga
               </button>
@@ -340,6 +340,7 @@ export const BarberOnboarding: React.FC = () => {
               </div>
             )}
 
+            {/* Current Step Pill */}
             <div className="flex items-center gap-1.5 text-xs font-black text-text bg-surface px-3 py-1.5 rounded-xl border border-border/40">
               <span className="text-accent">{step + 1}</span>
               <span className="text-muted">/</span>
@@ -347,7 +348,7 @@ export const BarberOnboarding: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Bar */}
+          {/* Smooth Progress Bar */}
           <div className="w-full h-2 bg-surface rounded-full overflow-hidden p-0.5 border border-border/40">
             <div
               className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
@@ -355,43 +356,25 @@ export const BarberOnboarding: React.FC = () => {
             />
           </div>
 
-          {/* 5 Step Icons & Labels Grid */}
-          <div className="grid grid-cols-5 gap-1 items-center justify-items-center w-full">
-            {STEPS.map((s, i) => {
-              const Icon = s.icon;
-              const isActive = i === step;
-              const isDone = i < step;
-              return (
-                <button
-                  key={s.key}
-                  disabled={i > step}
-                  onClick={() => i < step && setStep(i)}
-                  className={`w-full flex flex-col items-center gap-1 transition-all duration-300 select-none ${
-                    i <= step ? "cursor-pointer" : "cursor-default opacity-60"
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                      isActive
-                        ? "bg-accent text-white shadow-lg shadow-accent/30 ring-2 ring-accent/40 scale-105"
-                        : isDone
-                        ? "bg-accent/15 text-accent border border-accent/30"
-                        : "bg-surface text-muted border border-border/50"
-                    }`}
-                  >
-                    {isDone ? <Check size={15} strokeWidth={3} /> : <Icon size={15} />}
-                  </div>
-                  <span
-                    className={`text-[9.5px] font-extrabold tracking-tight truncate w-full text-center leading-tight ${
-                      isActive ? "text-primary font-black" : isDone ? "text-accent" : "text-muted"
-                    }`}
-                  >
-                    {s.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {/* ONLY Current Step Icon & Title (Clean, Ultra-Spacious, No Squeezing) */}
+          {(() => {
+            const currentStepItem = STEPS[step] || STEPS[0];
+            const StepIcon = currentStepItem?.icon || User;
+            const stepLabel = currentStepItem?.label || "";
+            return (
+              <div className="flex items-center gap-3 p-3 bg-surface/50 rounded-2xl border border-border/40 shadow-xs">
+                <StepIcon size={20} className="text-accent shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-accent">
+                    Bosqich {step + 1}
+                  </p>
+                  <h3 className="text-sm font-black text-primary truncate">
+                    {stepLabel}
+                  </h3>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Content Panels */}
