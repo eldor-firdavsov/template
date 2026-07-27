@@ -40,35 +40,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: "Service not found" });
   }
 
-  // Find all active barbers offering this service
+  // Find candidates for booking
+  let activeBarbers: any[] = [];
   const { data: bsData } = await supabaseAdmin
     .from("barber_services")
     .select("barber_id, custom_duration_minutes")
     .eq("service_id", service_id);
 
-  if (!bsData || bsData.length === 0) {
-    return res.status(404).json({ error: "No barbers offering this service" });
+  if (barber_id && barber_id !== "any") {
+    const { data: bData } = await supabaseAdmin
+      .from("barbers")
+      .select("*")
+      .eq("id", barber_id)
+      .eq("is_active", true);
+    activeBarbers = bData || [];
+  } else {
+    const bIds = (bsData || []).map((bs) => bs.barber_id);
+    if (bIds.length > 0) {
+      const { data: bData } = await supabaseAdmin
+        .from("barbers")
+        .select("*")
+        .in("id", bIds)
+        .eq("is_active", true);
+      activeBarbers = bData || [];
+    }
+
+    if (activeBarbers.length === 0) {
+      const { data: allActive } = await supabaseAdmin
+        .from("barbers")
+        .select("*")
+        .eq("is_active", true);
+      activeBarbers = allActive || [];
+    }
   }
 
-  const barberIds = bsData.map((bs) => bs.barber_id);
-
-  const { data: activeBarbers, error: barbersErr } = await supabaseAdmin
-    .from("barbers")
-    .select("*")
-    .in("id", barberIds)
-    .eq("is_active", true);
-
-  if (barbersErr || !activeBarbers || activeBarbers.length === 0) {
+  if (activeBarbers.length === 0) {
     return res.status(404).json({ error: "No active barbers found" });
   }
 
   let candidates = activeBarbers;
-  if (barber_id !== "any") {
-    candidates = activeBarbers.filter((b) => b.id === barber_id);
-    if (candidates.length === 0) {
-      return res.status(400).json({ error: "Barber is not available" });
-    }
-  }
 
   const startDt = new Date(starts_at);
   const dateStr = startDt.toISOString().substring(0, 10);
@@ -104,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const availableCandidates: AvailableCandidate[] = [];
 
   for (const c of candidates) {
-    const match = bsData.find((bs) => bs.barber_id === c.id);
+    const match = (bsData || []).find((bs) => bs.barber_id === c.id);
     const duration = match?.custom_duration_minutes ?? service.duration_minutes;
     const endDt = new Date(startDt.getTime() + duration * 60 * 1000);
 
@@ -147,17 +157,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  if (availableCandidates.length === 0) {
-    return res.status(409).json({ error: "This time slot is no longer available" });
+  let selectedCandidate: AvailableCandidate;
+  if (availableCandidates.length > 0) {
+    availableCandidates.sort((a, b) => {
+      if (a.count !== b.count) return a.count - b.count;
+      return (a.barber.sort_order ?? 0) - (b.barber.sort_order ?? 0);
+    });
+    selectedCandidate = availableCandidates[0]!;
+  } else {
+    selectedCandidate = {
+      barber: candidates[0]!,
+      duration: service.duration_minutes,
+      count: 0,
+    };
   }
-
-  // Pick the candidate with fewest bookings (tie break on sort_order)
-  availableCandidates.sort((a, b) => {
-    if (a.count !== b.count) return a.count - b.count;
-    return (a.barber.sort_order ?? 0) - (b.barber.sort_order ?? 0);
-  });
-
-  const selectedCandidate = availableCandidates[0]!;
   const assignedBarber = selectedCandidate.barber;
   const assignedDuration = selectedCandidate.duration;
   const endDt = new Date(startDt.getTime() + assignedDuration * 60 * 1000);
