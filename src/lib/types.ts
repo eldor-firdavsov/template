@@ -5,6 +5,8 @@ export interface Location {
   phone: string | null;
   photo_url: string | null;
   is_active: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at?: string;
 }
 

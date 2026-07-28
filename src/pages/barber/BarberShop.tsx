@@ -16,7 +16,43 @@ export const BarberShop: React.FC = () => {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
+  const [mapsInput, setMapsInput] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const parseCoordinates = (val: string) => {
+    setMapsInput(val);
+    const clean = val.trim();
+    if (!clean) return;
+
+    // 1. Check if it's a simple Lat, Lng pair (e.g. "41.31108, 69.24056")
+    const simpleCoordsRegex = /^(-?\d+\.\d+)\s*[\s,]\s*(-?\d+\.\d+)$/;
+    const simpleMatch = clean.match(simpleCoordsRegex);
+    if (simpleMatch && simpleMatch[1] && simpleMatch[2]) {
+      setLatitude(simpleMatch[1]);
+      setLongitude(simpleMatch[2]);
+      return;
+    }
+
+    // 2. Check for Google Maps URL coordinate format (e.g. .../@41.31108,69.24056,17z...)
+    const urlAtCoordsRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const urlAtMatch = clean.match(urlAtCoordsRegex);
+    if (urlAtMatch && urlAtMatch[1] && urlAtMatch[2]) {
+      setLatitude(urlAtMatch[1]);
+      setLongitude(urlAtMatch[2]);
+      return;
+    }
+
+    // 3. Check for Google Maps URL query format (e.g. ?q=41.31108,69.24056 or query=41.31108,69.24056)
+    const urlQueryRegex = /[?&](?:q|query)=(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const urlQueryMatch = clean.match(urlQueryRegex);
+    if (urlQueryMatch && urlQueryMatch[1] && urlQueryMatch[2]) {
+      setLatitude(urlQueryMatch[1]);
+      setLongitude(urlQueryMatch[2]);
+      return;
+    }
+  };
 
   const fetchShopData = async () => {
     setLoading(true);
@@ -60,10 +96,15 @@ export const BarberShop: React.FC = () => {
     setSaving(true);
 
     try {
+      const latVal = latitude.trim() ? parseFloat(latitude) : null;
+      const lngVal = longitude.trim() ? parseFloat(longitude) : null;
+
       const { error } = await supabase.from("locations").insert({
         name: name.trim(),
         address: address.trim(),
         phone: phone.trim() || null,
+        latitude: latVal,
+        longitude: lngVal,
       });
 
       if (error) throw error;
@@ -71,6 +112,9 @@ export const BarberShop: React.FC = () => {
       setName("");
       setAddress("");
       setPhone("");
+      setMapsInput("");
+      setLatitude("");
+      setLongitude("");
       await fetchShopData();
     } catch (err) {
       console.error("Failed to add location:", err);
@@ -131,6 +175,19 @@ export const BarberShop: React.FC = () => {
                           <MapPin size={12} />
                           <span>{loc.address}</span>
                         </div>
+                        {loc.latitude && loc.longitude && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-accent mt-1 font-bold">
+                            <MapPin size={11} />
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${loc.latitude},${loc.longitude}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="hover:underline flex items-center gap-1 bg-accent/15 px-2 py-0.5 rounded-lg border border-accent/25"
+                            >
+                              Maps: {Number(loc.latitude).toFixed(5)}, {Number(loc.longitude).toFixed(5)}
+                            </a>
+                          </div>
+                        )}
                         {loc.phone && (
                           <div className="flex items-center gap-1.5 text-xs text-text-secondary mt-1">
                             <Phone size={12} />
@@ -216,10 +273,63 @@ export const BarberShop: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
+                  Google Maps Link / Coordinates
+                </label>
+                <input
+                  type="text"
+                  value={mapsInput}
+                  onChange={(e) => parseCoordinates(e.target.value)}
+                  placeholder="Paste Map link or Lat, Lng (e.g. 41.2995, 69.2401)"
+                  className="w-full bg-bg px-3 py-2.5 rounded-xl text-xs border border-white/10 text-text outline-none focus:border-accent transition-colors"
+                />
+                <p className="text-[10px] text-text-secondary mt-1">
+                  Tip: Copy-paste standard coordinates or a Google Maps URL, we will automatically extract them.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-text-secondary uppercase mb-1">
+                    Latitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={latitude}
+                    onChange={(e) => setLatitude(e.target.value)}
+                    placeholder="Latitude"
+                    className="w-full bg-bg px-3 py-2.5 rounded-xl text-xs border border-white/10 text-text outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-text-secondary uppercase mb-1">
+                    Longitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={longitude}
+                    onChange={(e) => setLongitude(e.target.value)}
+                    placeholder="Longitude"
+                    className="w-full bg-bg px-3 py-2.5 rounded-xl text-xs border border-white/10 text-text outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => {
+                    setModalOpen(false);
+                    setName("");
+                    setAddress("");
+                    setPhone("");
+                    setMapsInput("");
+                    setLatitude("");
+                    setLongitude("");
+                  }}
                   className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-text font-bold rounded-xl text-xs transition-colors active:scale-95"
                 >
                   Cancel

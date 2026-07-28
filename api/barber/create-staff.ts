@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabase-admin";
+import { supabaseAdmin, parseBody } from "../_lib/supabase-admin";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const body = parseBody(req.body);
   const {
     access_token,
     email,
@@ -16,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     photo_url,
     services,
     workingHours,
-  } = req.body as {
+  } = body as {
     access_token?: string;
     email?: string;
     password?: string;

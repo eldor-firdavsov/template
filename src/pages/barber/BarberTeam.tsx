@@ -137,8 +137,14 @@ export const BarberTeam: React.FC = () => {
       });
 
       if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || "Deactivation failed");
+        let errMsg = "Deactivation failed";
+        try {
+          const result = await response.json();
+          errMsg = result.error || errMsg;
+        } catch {
+          errMsg = `Server error (${response.status})`;
+        }
+        throw new Error(errMsg);
       }
 
       fetchTeamData();

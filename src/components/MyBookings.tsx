@@ -49,13 +49,13 @@ const statusLabel: Record<string, string> = {
 };
 
 export function MyBookings({ onBack, onBookAnother }: Props) {
-  const [location, setLocation] = useState<{ name: string; address: string } | null>(null);
+  const [location, setLocation] = useState<{ name: string; address: string; latitude?: number | null; longitude?: number | null } | null>(null);
 
   useEffect(() => {
     async function fetchLocation() {
       const { data } = await supabase
         .from("locations")
-        .select("name, address")
+        .select("name, address, latitude, longitude")
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();
@@ -389,7 +389,7 @@ function BookingCard({
   booking: ApiBooking;
   cancelling: boolean;
   onCancel?: () => void;
-  location?: { name: string; address: string } | null;
+  location?: { name: string; address: string; latitude?: number | null; longitude?: number | null } | null;
 }) {
   const isUpcoming =
     (booking.status === "confirmed" || booking.status === "pending") &&
@@ -434,7 +434,11 @@ function BookingCard({
             <div className="text-[11px] text-muted mt-0.5">{location.address}</div>
           </div>
           <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.name + ", " + location.address)}`}
+            href={
+              location.latitude && location.longitude
+                ? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
+                : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.name + ", " + location.address)}`
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-[11px] font-bold text-accent hover:underline pt-1 cursor-pointer"

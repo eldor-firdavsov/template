@@ -25,7 +25,7 @@ export function StepSuccess({
   onBookAnother,
   onMyBookings,
 }: Props) {
-  const [location, setLocation] = useState<{ name: string; address: string } | null>(null);
+  const [location, setLocation] = useState<{ name: string; address: string; latitude?: number | null; longitude?: number | null } | null>(null);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function StepSuccess({
     async function fetchLocation() {
       const { data } = await supabase
         .from("locations")
-        .select("name, address")
+        .select("name, address, latitude, longitude")
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();
@@ -209,7 +209,11 @@ export function StepSuccess({
             <div className="text-xs text-muted mt-0.5">{location.address}</div>
           </div>
           <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.name + ", " + location.address)}`}
+            href={
+              location.latitude && location.longitude
+                ? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
+                : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.name + ", " + location.address)}`
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline pt-1"
