@@ -11,7 +11,13 @@ const SUPABASE_SERVICE_ROLE_KEY =
   process.env.VITE_SUPABASE_ANON_KEY ||
   "sb_publishable_r7wupyB29QRs3-D_-X839Q_m02iJwX_";
 
-export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+export let supabaseAdmin: any;
+try {
+  supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+} catch (e: any) {
+  console.error("Failed to initialize Supabase Admin client:", e);
+  supabaseAdmin = null;
+}
 
 export function parseBody(body: any) {
   if (!body) return {};

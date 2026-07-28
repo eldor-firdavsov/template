@@ -6,20 +6,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const body = parseBody(req.body);
-  const { access_token, full_name, phone, bio, photo_url } = body as {
-    access_token?: string;
-    full_name?: string;
-    phone?: string;
-    bio?: string;
-    photo_url?: string;
-  };
-
-  if (!access_token) {
-    return res.status(400).json({ error: "Missing access_token" });
-  }
-
   try {
+    let body: any = {};
+    try {
+      body = parseBody(req.body);
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid JSON body payload" });
+    }
+
+    const { access_token, full_name, phone, bio, photo_url } = body as {
+      access_token?: string;
+      full_name?: string;
+      phone?: string;
+      bio?: string;
+      photo_url?: string;
+    };
+
+    if (!access_token) {
+      return res.status(400).json({ error: "Missing access_token" });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Supabase Admin client not initialized" });
+    }
     // 1. Verify access_token to resolve the user
     const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(access_token);
     if (userErr || !userRes?.user) {

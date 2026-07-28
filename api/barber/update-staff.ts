@@ -6,34 +6,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const body = parseBody(req.body);
-  const {
-    access_token,
-    staffId,
-    fullname,
-    phone,
-    bio,
-    photo_url,
-    is_active,
-    services,
-    workingHours,
-  } = body as {
-    access_token?: string;
-    staffId?: string;
-    fullname?: string;
-    phone?: string;
-    bio?: string;
-    photo_url?: string;
-    is_active?: boolean;
-    services?: string[];
-    workingHours?: Array<{ weekday: number; start_time: string; end_time: string }>;
-  };
-
-  if (!access_token || !staffId) {
-    return res.status(400).json({ error: "Missing access_token or staffId" });
-  }
-
   try {
+    let body: any = {};
+    try {
+      body = parseBody(req.body);
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid JSON body payload" });
+    }
+
+    const {
+      access_token,
+      staffId,
+      fullname,
+      phone,
+      bio,
+      photo_url,
+      is_active,
+      services,
+      workingHours,
+    } = body as {
+      access_token?: string;
+      staffId?: string;
+      fullname?: string;
+      phone?: string;
+      bio?: string;
+      photo_url?: string;
+      is_active?: boolean;
+      services?: string[];
+      workingHours?: Array<{ weekday: number; start_time: string; end_time: string }>;
+    };
+
+    if (!access_token || !staffId) {
+      return res.status(400).json({ error: "Missing access_token or staffId" });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Supabase Admin client not initialized" });
+    }
     // 1. Verify requester is admin
     const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(access_token);
     if (userErr || !userRes?.user) {

@@ -6,37 +6,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const body = parseBody(req.body);
-  const {
-    access_token,
-    email,
-    password,
-    fullname,
-    phone,
-    bio,
-    photo_url,
-    services,
-    workingHours,
-  } = body as {
-    access_token?: string;
-    email?: string;
-    password?: string;
-    fullname?: string;
-    phone?: string;
-    bio?: string;
-    photo_url?: string;
-    services?: string[];
-    workingHours?: Array<{ weekday: number; start_time: string; end_time: string }>;
-  };
-
-  if (!access_token) {
-    return res.status(400).json({ error: "Missing access_token" });
-  }
-  if (!email || !password || !fullname || !phone) {
-    return res.status(400).json({ error: "Missing required fields (email, password, fullname, phone)" });
-  }
-
   try {
+    let body: any = {};
+    try {
+      body = parseBody(req.body);
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid JSON body payload" });
+    }
+
+    const {
+      access_token,
+      email,
+      password,
+      fullname,
+      phone,
+      bio,
+      photo_url,
+      services,
+      workingHours,
+    } = body as {
+      access_token?: string;
+      email?: string;
+      password?: string;
+      fullname?: string;
+      phone?: string;
+      bio?: string;
+      photo_url?: string;
+      services?: string[];
+      workingHours?: Array<{ weekday: number; start_time: string; end_time: string }>;
+    };
+
+    if (!access_token) {
+      return res.status(400).json({ error: "Missing access_token" });
+    }
+    if (!email || !password || !fullname || !phone) {
+      return res.status(400).json({ error: "Missing required fields (email, password, fullname, phone)" });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Supabase Admin client not initialized" });
+    }
     // 1. Verify requester is admin
     const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(access_token);
     if (userErr || !userRes?.user) {
