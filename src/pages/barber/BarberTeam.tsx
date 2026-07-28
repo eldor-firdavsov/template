@@ -138,11 +138,13 @@ export const BarberTeam: React.FC = () => {
 
       if (!response.ok) {
         let errMsg = "Deactivation failed";
+        const rawText = await response.text();
+        console.error("Server raw error response:", rawText);
         try {
-          const result = await response.json();
+          const result = JSON.parse(rawText);
           errMsg = result.error || errMsg;
         } catch {
-          errMsg = `Server error (${response.status})`;
+          errMsg = `Server error (${response.status}): ${rawText.slice(0, 100)}`;
         }
         throw new Error(errMsg);
       }
