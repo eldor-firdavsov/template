@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useBarberAuth } from "../../context/BarberAuthContext";
 import { supabase } from "../../lib/supabase";
-import { User, Phone, AlignLeft, Image, Save, Sparkles } from "lucide-react";
+import { User, Phone, AlignLeft, Image, Save, Sparkles, Upload } from "lucide-react";
 
 export const BarberSettings: React.FC = () => {
   const { barber, refreshBarber } = useBarberAuth();
@@ -122,30 +122,57 @@ export const BarberSettings: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
-              Profil Rasmi URL manzili
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+                Profil Rasmi (Avatar)
+              </label>
+              <label className="flex items-center gap-1.5 px-3 py-1 bg-accent/15 border border-accent/30 text-accent font-bold text-xs rounded-xl cursor-pointer hover:bg-accent hover:text-white transition-all">
+                <Upload size={13} />
+                <span>Fayldan yuklash</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file);
+                      reader.onload = () => {
+                        if (typeof reader.result === "string") setPhotoUrl(reader.result);
+                      };
+                    }
+                  }}
+                />
+              </label>
+            </div>
             <div className="flex items-center bg-bg rounded-xl px-3 border border-white/10 focus-within:border-accent">
               <Image size={18} className="text-text-secondary shrink-0 mr-2" />
               <input
                 type="url"
                 value={photoUrl}
                 onChange={(e) => setPhotoUrl(e.target.value)}
-                placeholder="https://example.com/avatar.jpg"
+                placeholder="https://example.com/avatar.jpg yoki fayldan tanlang"
                 className="w-full py-3 bg-transparent text-text outline-none text-sm"
               />
             </div>
             {photoUrl && (
-              <div className="mt-3">
-                <p className="text-[10px] font-bold text-text-secondary uppercase mb-1">Rasm Ko'rinishi</p>
+              <div className="mt-3 flex items-center gap-3">
                 <img
                   src={photoUrl}
                   alt="Avatar Preview"
-                  className="w-16 h-16 rounded-full object-cover border border-white/10"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-accent/40 shadow-md shadow-accent/10"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = "none";
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl("")}
+                  className="text-xs font-bold text-red-400 hover:underline"
+                >
+                  Avatar-ni o'chirish
+                </button>
               </div>
             )}
           </div>
