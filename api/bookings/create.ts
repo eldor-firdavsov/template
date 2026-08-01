@@ -16,8 +16,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     notes?: string;
   };
 
-  if (!service_id || !barber_id || !starts_at || !client_id) {
-    return res.status(400).json({ error: "Missing required fields: service_id, barber_id, starts_at, client_id" });
+  if (!service_id || !starts_at || !client_id) {
+    return res.status(400).json({ error: "Missing required fields: service_id, starts_at, client_id" });
   }
 
   // Find client
@@ -57,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq("is_active", true);
     activeBarbers = bData || [];
   } else {
-    const bIds = (bsData || []).map((bs) => bs.barber_id);
+    const bIds = (bsData || []).map((bs: any) => bs.barber_id);
     if (bIds.length > 0) {
       const { data: bData } = await supabaseAdmin
         .from("barbers")
@@ -91,17 +91,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     supabaseAdmin
       .from("working_hours")
       .select("barber_id, weekday, start_time, end_time")
-      .in("barber_id", candidates.map((c) => c.id))
+      .in("barber_id", candidates.map((c: any) => c.id))
       .eq("weekday", startWeekday),
     supabaseAdmin
       .from("time_off")
       .select("barber_id, date, start_time, end_time")
-      .in("barber_id", candidates.map((c) => c.id))
+      .in("barber_id", candidates.map((c: any) => c.id))
       .eq("date", dateStr),
     supabaseAdmin
       .from("bookings")
       .select("barber_id, starts_at, ends_at, status")
-      .in("barber_id", candidates.map((c) => c.id))
+      .in("barber_id", candidates.map((c: any) => c.id))
       .in("status", ["confirmed", "pending"])
       .gte("starts_at", `${dateStr}T00:00:00Z`)
       .lte("starts_at", `${dateStr}T23:59:59Z`),
@@ -116,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const availableCandidates: AvailableCandidate[] = [];
 
   for (const c of candidates) {
-    const match = (bsData || []).find((bs) => bs.barber_id === c.id);
+    const match = (bsData || []).find((bs: any) => bs.barber_id === c.id);
     const duration = match?.custom_duration_minutes ?? service.duration_minutes;
     const endDt = new Date(startDt.getTime() + duration * 60 * 1000);
 
@@ -129,24 +129,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const endTimeStr = `${endHour}:${endMin}:00`;
 
     // 1. Check working hours
-    const whs = (whResult.data ?? []).filter((w) => w.barber_id === c.id);
+    const whs = (whResult.data ?? []).filter((w: any) => w.barber_id === c.id);
     const effectiveWhs =
       whs.length > 0
         ? whs
         : startWeekday >= 1 && startWeekday <= 6
         ? [{ barber_id: c.id, weekday: startWeekday, start_time: "09:00:00", end_time: "20:00:00" }]
         : [];
-    const isWorking = effectiveWhs.some((w) => w.start_time <= startTimeStr && w.end_time >= endTimeStr);
+    const isWorking = effectiveWhs.some((w: any) => w.start_time <= startTimeStr && w.end_time >= endTimeStr);
     if (!isWorking) continue;
 
     // 2. Check time off
-    const tos = (toResult.data ?? []).filter((t) => t.barber_id === c.id);
-    const isOff = tos.some((t) => !t.start_time && !t.end_time || (t.start_time! < endTimeStr && t.end_time! > startTimeStr));
+    const tos = (toResult.data ?? []).filter((t: any) => t.barber_id === c.id);
+    const isOff = tos.some((t: any) => !t.start_time && !t.end_time || (t.start_time! < endTimeStr && t.end_time! > startTimeStr));
     if (isOff) continue;
 
     // 3. Check booking conflicts (confirmed only)
-    const barberBookings = (bookingResult.data ?? []).filter((b) => b.barber_id === c.id);
-    const hasConflict = barberBookings.some((b) => new Date(b.starts_at) < endDt && new Date(b.ends_at) > startDt);
+    const barberBookings = (bookingResult.data ?? []).filter((b: any) => b.barber_id === c.id);
+    const hasConflict = barberBookings.some((b: any) => new Date(b.starts_at) < endDt && new Date(b.ends_at) > startDt);
     if (hasConflict) continue;
 
     // 4. Count daily bookings
@@ -167,11 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     selectedCandidate = availableCandidates[0]!;
   } else {
-    selectedCandidate = {
-      barber: candidates[0]!,
-      duration: service.duration_minutes,
-      count: 0,
-    };
+    return res.status(409).json({ error: "Selected time slot is no longer available" });
   }
   const assignedBarber = selectedCandidate.barber;
   const assignedDuration = selectedCandidate.duration;

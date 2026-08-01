@@ -24,10 +24,14 @@ function formatPrice(price: number): string {
   return new Intl.NumberFormat("uz-UZ").format(price) + " " + uz.currency;
 }
 
-function canCancel(startsAt: string): boolean {
-  const start = new Date(startsAt);
-  const now = new Date();
-  return start.getTime() - now.getTime() > 60 * 60 * 1000;
+function canCancel(booking: ApiBooking): boolean {
+  if (booking.status === "pending") return true; // Pending can always be cancelled
+  if (booking.status === "confirmed") {
+    const start = new Date(booking.starts_at);
+    const now = new Date();
+    return start.getTime() - now.getTime() > 60 * 60 * 1000;
+  }
+  return false;
 }
 
 const statusColor: Record<string, string> = {
@@ -82,6 +86,12 @@ export function MyBookings({ onBack, onBookAnother }: Props) {
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!clientId && lookupName.trim() && lookupPhone.trim()) {
+      handleLookup();
+    }
+  }, []);
 
   useEffect(() => {
     if (!clientId) return;
@@ -395,7 +405,7 @@ function BookingCard({
     (booking.status === "confirmed" || booking.status === "pending") &&
     new Date(booking.starts_at) >= new Date();
 
-  const isCancelable = canCancel(booking.starts_at);
+  const isCancelable = canCancel(booking);
 
   return (
     <div className="bg-surface rounded-2xl p-5 space-y-3 border border-border/50 shadow-sm transition-all hover:shadow-md">
@@ -460,7 +470,7 @@ function BookingCard({
           >
             {cancelling ? uz.actions.cancelling : uz.actions.cancel}
           </button>
-          {!isCancelable && (
+          {!isCancelable && booking.status === "confirmed" && (
             <span className="text-[10px] text-muted/70 text-right w-full">
               Bekor qilish uchun vaqt o'tgan (kamida 1 soat oldin)
             </span>

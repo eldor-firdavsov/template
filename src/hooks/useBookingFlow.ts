@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
-import type { Barber, Service, Step } from "../lib/types";
+import type { Barber, Service, Step, Location } from "../lib/types";
 
 export interface BookingFlowState {
   step: Step;
+  selectedLocation: Location | null;
   selectedService: Service | null;
   selectedBarber: Barber | null;
   selectedDate: string;
@@ -12,6 +13,7 @@ export interface BookingFlowState {
 
 const initialState: BookingFlowState = {
   step: "service",
+  selectedLocation: null,
   selectedService: null,
   selectedBarber: null,
   selectedDate: "",
@@ -22,10 +24,19 @@ const initialState: BookingFlowState = {
 export function useBookingFlow() {
   const [state, setState] = useState<BookingFlowState>(initialState);
 
+  const selectLocation = useCallback((location: Location) => {
+    setState((prev) => ({
+      ...prev,
+      step: "service",
+      selectedLocation: location,
+      selectedService: null,
+      selectedBarber: null,
+    }));
+  }, []);
+
   const selectService = useCallback((service: Service) => {
     setState((prev) => ({
       ...prev,
-      step: "barber",
       selectedService: service,
       selectedBarber: null,
     }));
@@ -34,7 +45,6 @@ export function useBookingFlow() {
   const selectBarber = useCallback((barber: Barber | null) => {
     setState((prev) => ({
       ...prev,
-      step: "time",
       selectedBarber: barber,
     }));
   }, []);
@@ -66,6 +76,7 @@ export function useBookingFlow() {
 
   return {
     state,
+    selectLocation,
     selectService,
     selectBarber,
     selectTime,

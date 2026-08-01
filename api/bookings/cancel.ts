@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: "Not your booking" });
   }
 
-  // Only confirmed bookings can be cancelled, with a 1-hour window
+  // Allow cancellation of pending (no time restriction) or confirmed (1hr window) bookings
   if (booking.status === "confirmed") {
     const startsAt = new Date(booking.starts_at);
     const now = new Date();
@@ -35,6 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (startsAt.getTime() - now.getTime() <= oneHourMs) {
       return res.status(400).json({ error: "Cancellation window has passed (must be 1+ hour before appointment)" });
     }
+  } else if (booking.status === "pending") {
+    // Pending bookings can be cancelled at any time by the client
   } else {
     return res.status(400).json({ error: "Booking is not in a cancellable state" });
   }

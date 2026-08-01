@@ -195,6 +195,28 @@ export function StepConfirm({
     }
   }, [fullName, phone, note, displayBarber, service, date, time, onConfirm]);
 
+  const handleNameChange = (val: string) => {
+    setFullName(val);
+    try {
+      localStorage.setItem("client_full_name", val);
+    } catch {}
+  };
+
+  const handlePhoneChange = (rawVal: string) => {
+    const formatted = formatPhoneNumber(rawVal);
+    setPhone(formatted);
+    try {
+      localStorage.setItem("client_phone", formatted);
+    } catch {}
+  };
+
+  const handleNoteChange = (val: string) => {
+    setNote(val);
+    try {
+      localStorage.setItem("client_note", val);
+    } catch {}
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -316,7 +338,7 @@ export function StepConfirm({
               id="confirm-name"
               type="text"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) => handleNameChange(e.target.value)}
               placeholder={uz.contact.namePlaceholder}
               className="w-full px-4 py-3 rounded-xl bg-bg border border-border text-sm font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all disabled:opacity-60"
               disabled={booking}
@@ -331,7 +353,7 @@ export function StepConfirm({
               id="confirm-phone"
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+              onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="+998 XX XXX XX XX"
               className="w-full px-4 py-3 rounded-xl bg-bg border border-border text-sm font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all disabled:opacity-60"
               disabled={booking}
@@ -345,7 +367,7 @@ export function StepConfirm({
             <textarea
               id="confirm-note"
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => handleNoteChange(e.target.value)}
               placeholder={uz.contact.notePlaceholder}
               rows={2}
               className="w-full px-4 py-3 rounded-xl bg-bg border border-border text-sm font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all resize-none disabled:opacity-60"

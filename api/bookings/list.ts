@@ -28,8 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const result = (bookings ?? []).map((b: Record<string, unknown>) => {
-    const barber = b.barbers as { full_name: string; photo_url: string | null } | null;
-    const service = b.services as { name: string; duration_minutes: number } | null;
+    const rawBarber = Array.isArray(b.barbers) ? b.barbers[0] : b.barbers;
+    const rawService = Array.isArray(b.services) ? b.services[0] : b.services;
+    const barber = rawBarber as { full_name: string; photo_url: string | null } | null;
+    const service = rawService as { name: string; duration_minutes: number } | null;
     return {
       id: b.id,
       barber_id: b.barber_id,

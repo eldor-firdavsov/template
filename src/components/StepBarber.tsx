@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { Barber, Service } from "../lib/types";
+import type { Barber, Service, Location } from "../lib/types";
 import { uz } from "../lib/uz";
 import { Skeleton } from "./ui/Skeleton";
 import { Check } from "lucide-react";
 
 interface Props {
   service: Service;
+  selectedLocation?: Location | null;
   onSelect: (barber: Barber | null) => void;
   onBack: () => void;
 }
 
-export function StepBarber({ service, onSelect, onBack }: Props) {
+export function StepBarber({ service, selectedLocation, onSelect, onBack }: Props) {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
@@ -29,6 +30,9 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
       }
 
       let query = supabase.from("barbers").select("*").eq("is_active", true).order("sort_order");
+      if (selectedLocation) {
+        query = query.eq("location_id", selectedLocation.id);
+      }
       if (barberIds.length > 0) {
         query = query.in("id", barberIds);
       }
@@ -38,7 +42,7 @@ export function StepBarber({ service, onSelect, onBack }: Props) {
       setLoading(false);
     }
     load();
-  }, [service.id]);
+  }, [service.id, selectedLocation]);
 
   // IKEA Effect: handle selection with a brief animation delay before navigating
   const handleSelect = (barber: Barber | null) => {

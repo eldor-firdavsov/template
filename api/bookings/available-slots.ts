@@ -34,13 +34,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq("service_id", service_id);
 
     if (bsData && bsData.length > 0) {
-      const bsBarberIds = bsData.map((bs) => bs.barber_id);
+      const bsBarberIds = bsData.map((bs: any) => bs.barber_id);
       const { data: activeBarbers } = await supabaseAdmin
         .from("barbers")
         .select("id")
         .in("id", bsBarberIds)
         .eq("is_active", true);
-      barberIds = activeBarbers?.map((b) => b.id) ?? [];
+      barberIds = activeBarbers?.map((b: any) => b.id) ?? [];
     }
 
     if (barberIds.length === 0) {
@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from("barbers")
         .select("id")
         .eq("is_active", true);
-      barberIds = allActiveBarbers?.map((b) => b.id) ?? [];
+      barberIds = allActiveBarbers?.map((b: any) => b.id) ?? [];
     }
   }
 
@@ -73,8 +73,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select("barber_id, starts_at, ends_at, status")
       .in("barber_id", barberIds)
       .in("status", ["confirmed", "pending"])
-      .gte("starts_at", from_date + "T00:00:00")
-      .lte("starts_at", to_date + "T23:59:59"),
+      .gte("starts_at", from_date + "T00:00:00Z")
+      .lte("starts_at", to_date + "T23:59:59Z"),
     supabaseAdmin
       .from("barber_services")
       .select("barber_id, service_id, custom_duration_minutes")
@@ -89,15 +89,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mergedSlots = new Map<string, string[]>();
   const fromDateObj = new Date(from_date + "T00:00:00Z");
   const toDateObj = new Date(to_date + "T00:00:00Z");
+  const nowIsoStr = new Date().toISOString();
+  const todayDateStr = nowIsoStr.substring(0, 10);
+  const nowHour = parseInt(nowIsoStr.substring(11, 13), 10);
+  const nowMin = parseInt(nowIsoStr.substring(14, 16), 10);
+  const nowInMinutes = nowHour * 60 + nowMin;
 
   for (const bid of barberIds) {
     const bsData = bsResult.data ?? [];
     const match = bsData.find(
-      (bs) => bs.service_id === service_id && bs.barber_id === bid,
+      (bs: any) => bs.service_id === service_id && bs.barber_id === bid,
     );
     const duration = match?.custom_duration_minutes ?? service.duration_minutes;
 
-    let barberWH = (whResult.data ?? []).filter((wh) => wh.barber_id === bid);
+    let barberWH = (whResult.data ?? []).filter((wh: any) => wh.barber_id === bid);
     if (barberWH.length === 0) {
       // Default working hours: Mon–Sat (1..6), 09:00 - 20:00
       barberWH = [1, 2, 3, 4, 5, 6].map((w) => ({
@@ -107,9 +112,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         end_time: "20:00:00",
       }));
     }
-    const barberTO = (toResult.data ?? []).filter((to) => to.barber_id === bid);
+    const barberTO = (toResult.data ?? []).filter((to: any) => to.barber_id === bid);
     const barberBookings = (bookingResult.data ?? []).filter(
-      (b) => b.barber_id === bid,
+      (b: any) => b.barber_id === bid,
     );
 
     const current = new Date(fromDateObj);
@@ -117,18 +122,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const weekday = current.getUTCDay();
       const dateStr = current.toISOString().substring(0, 10);
 
-      const dayHours = barberWH.filter((wh) => wh.weekday === weekday);
+      const dayHours = barberWH.filter((wh: any) => wh.weekday === weekday);
       if (dayHours.length === 0) {
         current.setUTCDate(current.getUTCDate() + 1);
         continue;
       }
 
       let availableRanges: { start: string; end: string }[] = dayHours.map(
-        (wh) => ({ start: wh.start_time, end: wh.end_time }),
+        (wh: any) => ({ start: wh.start_time, end: wh.end_time }),
       );
 
       // Subtract time off
-      const dayTO = barberTO.filter((to) => to.date === dateStr);
+      const dayTO = barberTO.filter((to: any) => to.date === dateStr);
       for (const to of dayTO) {
         if (!to.start_time && !to.end_time) {
           availableRanges = [];
@@ -140,10 +145,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // Subtract existing confirmed bookings
+      // Subtract existing confirmed/pending bookings
       if (availableRanges.length > 0) {
         const dayBookings = barberBookings.filter(
-          (b) => b.starts_at.substring(0, 10) === dateStr,
+          (b: any) => new Date(b.starts_at).toISOString().substring(0, 10) === dateStr,
         );
         for (const b of dayBookings) {
           availableRanges = subtractTimeRanges(availableRanges, {
@@ -159,6 +164,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const rangeEnd = timeToMinutes(range.end);
 
         while (slotStart + duration <= rangeEnd) {
+          if (dateStr < todayDateStr || (dateStr === todayDateStr && slotStart <= nowInMinutes)) {
+            slotStart += SLOT_GRANULARITY;
+            continue;
+          }
           const slotStr = minutesToTime(slotStart);
           if (!mergedSlots.has(dateStr)) mergedSlots.set(dateStr, []);
           const slots = mergedSlots.get(dateStr)!;
@@ -175,29 +184,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Generate slots for each day in date range
   const result: Record<string, string[]> = {};
-  const defaultSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-    "18:00", "18:30", "19:00", "19:30"
-  ];
 
   // Populate slots for every day in from_date..to_date
-  let cur = new Date(from_date + "T00:00:00");
-  const endD = new Date(to_date + "T00:00:00");
+  let cur = new Date(from_date + "T00:00:00Z");
+  const endD = new Date(to_date + "T00:00:00Z");
   while (cur <= endD) {
-    const y = cur.getFullYear();
-    const m = String(cur.getMonth() + 1).padStart(2, "0");
-    const d = String(cur.getDate()).padStart(2, "0");
+    const y = cur.getUTCFullYear();
+    const m = String(cur.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(cur.getUTCDate()).padStart(2, "0");
     const dStr = `${y}-${m}-${d}`;
     
     const existing = mergedSlots.get(dStr);
-    if (existing && existing.length > 0) {
-      result[dStr] = existing.sort();
-    } else {
-      result[dStr] = defaultSlots;
-    }
-    cur.setDate(cur.getDate() + 1);
+    // Only return real computed slots — no fallback defaults
+    result[dStr] = existing ? existing.sort() : [];
+    cur.setUTCDate(cur.getUTCDate() + 1);
   }
 
   return res.json(result);

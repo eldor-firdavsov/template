@@ -10,6 +10,8 @@ export const uz = {
   },
 
   steps: {
+    chooseLocation: "Filialni tanlang",
+    chooseLocationSub: "Qaysi filialimizga tashrif buyurasiz?",
     chooseService: "Xizmatni tanlang",
     chooseServiceSub: "Bugun nima qilamiz?",
     chooseBarber: "Barberni tanlang",

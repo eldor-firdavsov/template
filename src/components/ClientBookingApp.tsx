@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useBookingFlow } from "../hooks/useBookingFlow";
+import { StepLocation } from "./StepLocation";
 import { StepService } from "./StepService";
 import { StepBarber } from "./StepBarber";
 import { StepTime } from "./StepTime";
 import { StepConfirm } from "./StepConfirm";
 import { StepSuccess } from "./StepSuccess";
 import { MyBookings } from "./MyBookings";
-import type { Barber, Service } from "../lib/types";
+import type { Barber, Service, Location } from "../lib/types";
 import { uz } from "../lib/uz";
 import { supabase } from "../lib/supabase";
 
@@ -15,6 +16,7 @@ import { Scissors, Check } from "lucide-react";
 export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) {
   const {
     state,
+    selectLocation,
     selectService,
     selectBarber,
     selectTime,
@@ -23,6 +25,7 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
     reset,
   } = useBookingFlow();
   const [assignedBarber, setAssignedBarber] = useState<Barber | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   // iOS 26 Slide Direction & Swipe Tracking
   const prevStepRef = useRef(state.step);
@@ -31,13 +34,34 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
   const touchStartY = useRef<number | null>(null);
 
   const stepOrderMap: Record<string, number> = {
-    service: 0,
-    barber: 1,
-    time: 2,
-    confirm: 3,
-    success: 4,
-    bookings: 5,
+    location: 0,
+    service: 1,
+    barber: 2,
+    time: 3,
+    confirm: 4,
+    success: 5,
+    bookings: 6,
   };
+
+  useEffect(() => {
+    async function fetchLocations() {
+      const { data } = await supabase
+        .from("locations")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+
+      const locs = (data || []) as Location[];
+      setLocations(locs);
+
+      if (locs.length > 1 && !state.selectedLocation && state.step !== "bookings" && state.step !== "success") {
+        goToStep("location");
+      } else if (locs.length === 1 && !state.selectedLocation) {
+        selectLocation(locs[0]!);
+      }
+    }
+    fetchLocations();
+  }, []);
 
   useEffect(() => {
     if (prevStepRef.current !== state.step) {
@@ -63,13 +87,15 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
     if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
       if (deltaX > 0) {
         // Swipe right -> Go back to previous step
-        if (state.step === "barber") goToStep("service");
+        if (state.step === "service" && locations.length > 1) goToStep("location");
+        else if (state.step === "barber") goToStep("service");
         else if (state.step === "time") goToStep("barber");
         else if (state.step === "confirm") goToStep("time");
         else if (state.step === "bookings") goToStep("service");
       } else if (deltaX < 0) {
         // Swipe left -> Go forward if already selected
-        if (state.step === "service" && state.selectedService) goToStep("barber");
+        if (state.step === "location" && state.selectedLocation) goToStep("service");
+        else if (state.step === "service" && state.selectedService) goToStep("barber");
         else if (state.step === "barber" && state.selectedBarber) goToStep("time");
         else if (state.step === "time" && state.selectedDate && state.selectedTime) goToStep("confirm");
       }
@@ -78,23 +104,36 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
     touchStartY.current = null;
   };
 
-  if (initialStep === "bookings" && state.step !== "bookings") {
-    goToStep("bookings");
-  }
+  // Set initial step only once on mount to prevent infinite render loop
+  const hasSetInitialStep = useRef(false);
+  useEffect(() => {
+    if (!hasSetInitialStep.current && initialStep === "bookings") {
+      hasSetInitialStep.current = true;
+      goToStep("bookings");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectService = async (service: Service) => {
-    const { data: mappings } = await supabase
+    let barbersQuery = supabase
       .from("barber_services")
       .select("barber_id")
       .eq("service_id", service.id);
 
+    const { data: mappings } = await barbersQuery;
+
     if (mappings && mappings.length > 0) {
       const barberIds = mappings.map((m) => m.barber_id);
-      const { data: barbers } = await supabase
+      let query = supabase
         .from("barbers")
         .select("*")
         .in("id", barberIds)
         .eq("is_active", true);
+
+      if (state.selectedLocation) {
+        query = query.eq("location_id", state.selectedLocation.id);
+      }
+
+      const { data: barbers } = await query;
 
       if (barbers && barbers.length === 1) {
         selectService(service);
@@ -117,11 +156,17 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
 
       if (mappings && mappings.length > 0) {
         const barberIds = mappings.map((m) => m.barber_id);
-        const { data: barbers } = await supabase
+        let query = supabase
           .from("barbers")
           .select("id")
           .in("id", barberIds)
           .eq("is_active", true);
+
+        if (state.selectedLocation) {
+          query = query.eq("location_id", state.selectedLocation.id);
+        }
+
+        const { data: barbers } = await query;
 
         if (barbers && barbers.length === 1) {
           goToStep("service");
@@ -130,7 +175,14 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
       }
     }
 
+    if (state.step === "service" && locations.length > 1) {
+      goToStep("location");
+      return;
+    }
+
     const backMap: Record<string, string> = {
+      location: "location",
+      service: "location",
       barber: "service",
       time: "barber",
       confirm: "time",
@@ -389,16 +441,27 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
                   : "animate-fade-in"
               }
             >
+              {state.step === "location" && (
+                <StepLocation onSelect={selectLocation} />
+              )}
+
               {state.step === "service" && (
-                <StepService onSelect={handleSelectService} />
+                <StepService
+                  selectedLocation={state.selectedLocation}
+                  locationsCount={locations.length}
+                  onChangeLocation={() => goToStep("location")}
+                  onSelect={handleSelectService}
+                />
               )}
 
               {state.step === "barber" && state.selectedService && (
                 <StepBarber
                   service={state.selectedService}
+                  selectedLocation={state.selectedLocation}
                   onSelect={(barber) => {
                     setAssignedBarber(null);
                     selectBarber(barber);
+                    goToStep("time");
                   }}
                   onBack={handleBack}
                 />

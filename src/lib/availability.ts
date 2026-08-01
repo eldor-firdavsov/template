@@ -132,7 +132,7 @@ export function getAvailableSlots(
 
     if (availableRanges.length > 0) {
       const dayBookings = bookings.filter((b) => {
-        if (b.barber_id !== barberId || b.status !== "confirmed") return false;
+        if (b.barber_id !== barberId || (b.status !== "confirmed" && b.status !== "pending")) return false;
         const bDate = b.starts_at.substring(0, 10);
         return bDate === dateStr;
       });

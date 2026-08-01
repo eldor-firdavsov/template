@@ -620,7 +620,7 @@ export const BarberTeam: React.FC = () => {
                       { num: 4, name: "Pa" },
                       { num: 5, name: "Ju" },
                       { num: 6, name: "Sh" },
-                      { num: 7, name: "Ya" },
+                      { num: 0, name: "Ya" },
                     ].map((d) => {
                       const selected = selectedDays.includes(d.num);
                       return (
@@ -816,7 +816,7 @@ export const BarberTeam: React.FC = () => {
                       { num: 4, name: "Pa" },
                       { num: 5, name: "Ju" },
                       { num: 6, name: "Sh" },
-                      { num: 7, name: "Ya" },
+                      { num: 0, name: "Ya" },
                     ].map((d) => {
                       const selected = selectedDays.includes(d.num);
                       return (

@@ -97,6 +97,7 @@ export interface TimeRange {
 }
 
 export type Step =
+  | "location"
   | "service"
   | "barber"
   | "time"

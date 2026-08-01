@@ -64,11 +64,32 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
         fromDate,
         toDate,
       );
-      setSlots(data);
+
+      // Clean & filter data against client local time to guarantee no past or expired slots are shown
+      const now = new Date();
+      const todayStr = formatDateStr(now);
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const cleanedData: Record<string, string[]> = {};
+      for (const [dateKey, slotList] of Object.entries(data)) {
+        if (dateKey < todayStr) {
+          cleanedData[dateKey] = [];
+        } else if (dateKey === todayStr) {
+          cleanedData[dateKey] = (slotList ?? []).filter((s) => {
+            const [hStr, mStr] = s.split(":");
+            const slotMin = parseInt(hStr ?? "0", 10) * 60 + parseInt(mStr ?? "0", 10);
+            return slotMin > nowMinutes;
+          });
+        } else {
+          cleanedData[dateKey] = slotList ?? [];
+        }
+      }
+
+      setSlots(cleanedData);
 
       // Smart Defaults: auto-select first available day, announce if we skipped today
       const firstAvailableIndex = days.findIndex(
-        (d) => (data[formatDateStr(d)] ?? []).length > 0
+        (d) => (cleanedData[formatDateStr(d)] ?? []).length > 0
       );
       if (firstAvailableIndex > 0) {
         setSelectedDay(firstAvailableIndex);
@@ -98,15 +119,9 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
   const currentDay = days[selectedDay]!;
   const currentDateStr = formatDateStr(currentDay);
 
-  const defaultFallbackSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-    "18:00", "18:30", "19:00", "19:30"
-  ];
-
   const rawDaySlots = slots[currentDateStr] ?? [];
-  const daySlots = rawDaySlots.length > 0 ? rawDaySlots : defaultFallbackSlots;
+  // Only use real API slots — no fallback to avoid showing fake available times
+  const daySlots = rawDaySlots;
 
   // Loss Aversion: scarcity
   const isScarce = (dateStr: string) => {

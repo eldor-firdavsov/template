@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Check if user already exists in auth
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existing = existingUsers?.users?.find(
-      (u) => (u.email ?? "").toLowerCase() === cleanEmail
+      (u: any) => (u.email ?? "").toLowerCase() === cleanEmail
     );
 
     if (existing) {

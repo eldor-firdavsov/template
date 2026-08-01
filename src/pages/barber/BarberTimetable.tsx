@@ -11,6 +11,7 @@ export const BarberTimetable: React.FC = () => {
     () => new Date().toISOString().split("T")[0] || ""
   );
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [pendingBookings, setPendingBookings] = useState<BookingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
@@ -42,15 +43,31 @@ export const BarberTimetable: React.FC = () => {
         .lte("starts_at", dayEnd)
         .order("starts_at", { ascending: true });
 
+      let pendingQuery = supabase
+        .from("bookings")
+        .select(`
+          *,
+          service:services(*),
+          client:clients(*),
+          barber:barbers!barber_id(*)
+        `)
+        .eq("status", "pending")
+        .order("starts_at", { ascending: true });
+
       // If user is not admin, or if admin explicitly filters for "only mine"
       if (barber.role !== "admin" || !showAllBarbers) {
         query = query.eq("barber_id", barber.id);
+        pendingQuery = pendingQuery.eq("barber_id", barber.id);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      const [resDate, resPending] = await Promise.all([query, pendingQuery]);
+      if (resDate.error) throw resDate.error;
+      if (resPending.error) throw resPending.error;
       
-      const newBookings = data || [];
+      const newBookings = resDate.data || [];
+      const newPending = resPending.data || [];
+
+      setPendingBookings(newPending);
       
       if (isRealtimeUpdate) {
         setBookings(prev => {
@@ -154,6 +171,17 @@ export const BarberTimetable: React.FC = () => {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
+  const formatPendingDate = (startsAt: string) => {
+    const d = new Date(startsAt);
+    const weekday = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"][d.getUTCDay()];
+    const day = d.getUTCDate();
+    const monthNames = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+    const month = monthNames[d.getUTCMonth()];
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const mm = String(d.getUTCMinutes()).padStart(2, "0");
+    return `${weekday}, ${day}-${month} • ${hh}:${mm}`;
+  };
+
   // Black and white minimal status coloring
   const statusColors: Record<string, string> = {
     pending: "bg-black/5 text-black border-black/15",
@@ -182,8 +210,83 @@ export const BarberTimetable: React.FC = () => {
     declined: "Rad etilgan",
   };
 
+  type BookingFilter = "all" | "upcoming" | "finished" | "canceled";
+  const [statusFilter, setStatusFilter] = useState<BookingFilter>("all");
+
+  const filteredBookings = bookings.filter((b) => {
+    if (statusFilter === "all") return true;
+    if (statusFilter === "upcoming") return b.status === "confirmed" || b.status === "pending";
+    if (statusFilter === "finished") return b.status === "completed";
+    if (statusFilter === "canceled") return b.status === "cancelled" || b.status === "declined" || b.status === "no_show";
+    return true;
+  });
+
   return (
     <div className="space-y-6 animate-fade-in text-text">
+      {/* Pending Approvals Notification Section */}
+      {pendingBookings.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-5 rounded-2xl space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-500 font-extrabold text-base">
+              <Clock size={20} className="animate-spin-slow" />
+              <span>Tasdiqlash kutilayotgan buyurtmalar ({pendingBookings.length})</span>
+            </div>
+            <span className="text-xs font-semibold text-amber-500/80 hidden sm:inline">
+              Mijozlar buyurtmalarini tasdiqlang yoki rad eting
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {pendingBookings.map((pb) => (
+              <div key={pb.id} className="bg-card p-4 rounded-xl border border-white/10 flex flex-col justify-between gap-3 shadow-md">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-accent">
+                      {formatPendingDate(pb.starts_at)}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                      Kutilmoqda
+                    </span>
+                  </div>
+                  <div className="font-bold text-sm text-text">
+                    {pb.client?.full_name || "Mijoz"} {pb.client?.phone && `(${pb.client.phone})`}
+                  </div>
+                  <div className="text-xs text-text-secondary">
+                    {pb.service?.name || "Xizmat"} • {new Intl.NumberFormat("uz-UZ").format(pb.price_at_booking)} so'm
+                  </div>
+                  {barber?.role === "admin" && pb.barber && (
+                    <div className="text-[11px] font-semibold text-accent">
+                      Sartarosh: {pb.barber.full_name}
+                    </div>
+                  )}
+                  {(pb.notes || pb.client_note) && (
+                    <p className="text-xs text-text-secondary italic bg-bg p-2 rounded-lg border border-white/5">
+                      "{pb.notes || pb.client_note}"
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
+                  <button
+                    onClick={() => handleDecision(pb.id, "declined")}
+                    disabled={actionInProgress === pb.id}
+                    className="py-2 px-3 border border-red-500/30 text-red-500 hover:bg-red-500/10 font-bold text-xs rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1"
+                  >
+                    <X size={14} /> Rad etish
+                  </button>
+                  <button
+                    onClick={() => handleDecision(pb.id, "confirmed")}
+                    disabled={actionInProgress === pb.id}
+                    className="py-2 px-3 bg-black text-white hover:bg-black/90 font-bold text-xs rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1 shadow-md"
+                  >
+                    <Check size={14} /> Tasdiqlash
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Date Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-5 rounded-2xl border border-white/10 shadow-sm">
         <div>
@@ -221,13 +324,48 @@ export const BarberTimetable: React.FC = () => {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-3 px-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary">
-        <span>Status:</span>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-black/30"></div><span>Kutilmoqda</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-black"></div><span>Tasdiqlangan</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-black/10"></div><span>Yakunlangan</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded border border-black/10 line-through"></div><span>Bekor qilingan / Rad etilgan</span></div>
+      {/* Interactive Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-card rounded-2xl border border-white/10 shadow-sm text-xs font-bold">
+        <button
+          onClick={() => setStatusFilter("all")}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
+            statusFilter === "all"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "text-text-secondary hover:text-text hover:bg-white/5"
+          }`}
+        >
+          Barchasi ({bookings.length})
+        </button>
+        <button
+          onClick={() => setStatusFilter("upcoming")}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
+            statusFilter === "upcoming"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "text-text-secondary hover:text-text hover:bg-white/5"
+          }`}
+        >
+          Kelgusi ({bookings.filter((b) => b.status === "confirmed" || b.status === "pending").length})
+        </button>
+        <button
+          onClick={() => setStatusFilter("finished")}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
+            statusFilter === "finished"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "text-text-secondary hover:text-text hover:bg-white/5"
+          }`}
+        >
+          Yakunlangan ({bookings.filter((b) => b.status === "completed").length})
+        </button>
+        <button
+          onClick={() => setStatusFilter("canceled")}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
+            statusFilter === "canceled"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "text-text-secondary hover:text-text hover:bg-white/5"
+          }`}
+        >
+          Bekor qilingan ({bookings.filter((b) => b.status === "cancelled" || b.status === "declined" || b.status === "no_show").length})
+        </button>
       </div>
 
       {/* Bookings List */}
@@ -237,21 +375,23 @@ export const BarberTimetable: React.FC = () => {
             <Skeleton key={i} className="w-full h-32 rounded-2xl bg-card border border-white/10" />
           ))}
         </div>
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="bg-card p-12 rounded-3xl border border-dashed border-white/20 text-center space-y-3">
           <div className="w-16 h-16 rounded-full bg-bg border border-white/5 flex items-center justify-center mx-auto mb-2 text-text-secondary">
             <Clock size={28} />
           </div>
           <div>
-            <h3 className="font-bold text-text text-lg">Buyurtmalar yo'q</h3>
+            <h3 className="font-bold text-text text-lg">Buyurtmalar topilmadi</h3>
             <p className="text-sm text-text-secondary mt-1 max-w-xs mx-auto">
-              {selectedDate} sanasi uchun buyurtmalar scheduled qilinmagan.
+              {bookings.length === 0
+                ? `${selectedDate} sanasi uchun buyurtmalar yo'q.`
+                : "Tanlangan filtr bo'yicha buyurtmalar mavjud emas."}
             </p>
           </div>
         </div>
       ) : (
         <div className="space-y-3">
-          {bookings.map((b) => {
+          {filteredBookings.map((b) => {
             const isPendingAction = actionInProgress === b.id;
             const isNew = newlyAddedIds.has(b.id);
             const startTimeStr = formatTime(b.starts_at);

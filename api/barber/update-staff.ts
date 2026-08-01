@@ -49,14 +49,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
 
+    const requesterAuthId = userRes.user.id;
     const requesterEmail = (userRes.user.email ?? "").toLowerCase();
-    const { data: requesterBarber, error: reqBarberErr } = await supabaseAdmin
+
+    // Prefer lookup by auth_user_id (more reliable), fallback to email
+    let requesterBarber: { role: string; location_id: string | null } | null = null;
+    const { data: byAuthId } = await supabaseAdmin
       .from("barbers")
       .select("role, location_id")
-      .ilike("email", requesterEmail)
+      .eq("auth_user_id", requesterAuthId)
       .maybeSingle();
 
-    if (reqBarberErr || !requesterBarber || requesterBarber.role !== "admin") {
+    if (byAuthId) {
+      requesterBarber = byAuthId;
+    } else if (requesterEmail) {
+      const { data: byEmail } = await supabaseAdmin
+        .from("barbers")
+        .select("role, location_id")
+        .ilike("email", requesterEmail)
+        .maybeSingle();
+      requesterBarber = byEmail;
+    }
+
+    if (!requesterBarber || requesterBarber.role !== "admin") {
       return res.status(403).json({ error: "Only admins are authorized to manage team members" });
     }
 

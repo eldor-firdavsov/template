@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { Service } from "../lib/types";
+import type { Service, Location } from "../lib/types";
 import { uz } from "../lib/uz";
 import { Skeleton } from "./ui/Skeleton";
-import { MapPin, Clock, ChevronRight, Sparkles } from "lucide-react";
+import { MapPin, Clock, ChevronRight, Sparkles, RefreshCw } from "lucide-react";
 
 interface Props {
+  selectedLocation?: Location | null;
+  locationsCount?: number;
+  onChangeLocation?: () => void;
   onSelect: (service: Service) => void;
 }
 
@@ -13,18 +16,24 @@ function formatPrice(price: number): string {
   return new Intl.NumberFormat("uz-UZ").format(price) + " " + uz.currency;
 }
 
-export function StepService({ onSelect }: Props) {
+export function StepService({ selectedLocation, locationsCount = 1, onChangeLocation, onSelect }: Props) {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [shopInfo, setShopInfo] = useState<{ name: string; address: string } | null>(null);
 
   useEffect(() => {
     async function load() {
-      // 1. Get active barbers
-      const { data: activeBarbers } = await supabase
+      // 1. Get active barbers for the selected location if provided
+      let barbersQuery = supabase
         .from("barbers")
         .select("id")
         .eq("is_active", true);
+
+      if (selectedLocation) {
+        barbersQuery = barbersQuery.eq("location_id", selectedLocation.id);
+      }
+
+      const { data: activeBarbers } = await barbersQuery;
       const activeBarberIds = (activeBarbers || []).map((b) => b.id);
 
       // 2. Get valid service IDs mapped to active barbers
@@ -51,22 +60,24 @@ export function StepService({ onSelect }: Props) {
         query = query.in("id", validServiceIds);
       }
 
-      const [{ data, error }, { data: loc }] = await Promise.all([
-        query,
-        supabase
+      const [{ data, error }] = await Promise.all([query]);
+
+      if (!error && data) setServices(data as Service[]);
+      if (selectedLocation) {
+        setShopInfo({ name: selectedLocation.name, address: selectedLocation.address });
+      } else {
+        const { data: loc } = await supabase
           .from("locations")
           .select("name, address")
           .eq("is_active", true)
           .limit(1)
-          .maybeSingle(),
-      ]);
-
-      if (!error && data) setServices(data as Service[]);
-      if (loc) setShopInfo(loc);
+          .maybeSingle();
+        if (loc) setShopInfo(loc);
+      }
       setLoading(false);
     }
     load();
-  }, []);
+  }, [selectedLocation]);
 
   const grouped = services.reduce<Record<string, Service[]>>((acc, s) => {
     const cat = s.category ?? "Boshqa";
@@ -109,15 +120,24 @@ export function StepService({ onSelect }: Props) {
           <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
             <MapPin className="w-4 h-4 text-accent" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="text-xs font-bold text-accent uppercase tracking-wider">{shopInfo.name}</div>
             <div className="text-xs text-muted truncate mt-0.5">{shopInfo.address}</div>
           </div>
-          {/* Open indicator */}
-          <div className="ml-auto shrink-0 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
-            <span className="text-[10px] font-semibold text-success">Ochiq</span>
-          </div>
+          {locationsCount > 1 && onChangeLocation ? (
+            <button
+              onClick={onChangeLocation}
+              className="ml-auto shrink-0 flex items-center gap-1 text-[10px] font-bold text-accent bg-accent/10 border border-accent/20 px-2.5 py-1.5 rounded-xl hover:bg-accent hover:text-white transition-all active:scale-95"
+            >
+              <RefreshCw size={10} />
+              O'zgartirish
+            </button>
+          ) : (
+            <div className="ml-auto shrink-0 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
+              <span className="text-[10px] font-semibold text-success">Ochiq</span>
+            </div>
+          )}
         </div>
       )}
 
