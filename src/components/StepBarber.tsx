@@ -19,25 +19,43 @@ export function StepBarber({ service, selectedLocation, onSelect, onBack }: Prop
 
   useEffect(() => {
     async function load() {
-      const { data: bsData } = await supabase
+      // 1. Find which barbers offer this service
+      const { data: bsData, error: bsError } = await supabase
         .from("barber_services")
         .select("barber_id")
         .eq("service_id", service.id);
+
+      if (bsError) console.error("[StepBarber] barber_services error:", bsError);
 
       let barberIds: string[] = [];
       if (bsData && bsData.length > 0) {
         barberIds = bsData.map((bs) => bs.barber_id);
       }
 
-      let query = supabase.from("barbers").select("*").eq("is_active", true).order("sort_order");
-      if (selectedLocation) {
-        query = query.eq("location_id", selectedLocation.id);
-      }
-      if (barberIds.length > 0) {
-        query = query.in("id", barberIds);
+      // 2. Build query for active barbers
+      const buildQuery = (withLocation: boolean) => {
+        let q = supabase.from("barbers").select("*").eq("is_active", true).order("sort_order");
+        if (withLocation && selectedLocation) {
+          q = q.eq("location_id", selectedLocation.id);
+        }
+        if (barberIds.length > 0) {
+          q = q.in("id", barberIds);
+        }
+        return q;
+      };
+
+      // 3. Try with location filter first; fall back to no location filter if empty
+      let { data: barberData, error } = await buildQuery(true);
+      if (error) console.error("[StepBarber] barbers query error:", error);
+
+      if ((!barberData || barberData.length === 0) && selectedLocation) {
+        // Barbers may not have location_id set — retry without location filter
+        console.warn("[StepBarber] No barbers found for location, retrying without location filter");
+        const fallback = await buildQuery(false);
+        if (fallback.error) console.error("[StepBarber] fallback error:", fallback.error);
+        barberData = fallback.data;
       }
 
-      const { data: barberData } = await query;
       if (barberData) setBarbers(barberData as Barber[]);
       setLoading(false);
     }

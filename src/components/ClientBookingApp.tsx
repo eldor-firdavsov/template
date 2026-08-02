@@ -114,26 +114,33 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectService = async (service: Service) => {
-    let barbersQuery = supabase
+    const { data: mappings } = await supabase
       .from("barber_services")
       .select("barber_id")
       .eq("service_id", service.id);
 
-    const { data: mappings } = await barbersQuery;
-
     if (mappings && mappings.length > 0) {
       const barberIds = mappings.map((m) => m.barber_id);
-      let query = supabase
-        .from("barbers")
-        .select("*")
-        .in("id", barberIds)
-        .eq("is_active", true);
 
-      if (state.selectedLocation) {
-        query = query.eq("location_id", state.selectedLocation.id);
+      const buildQuery = (withLocation: boolean) => {
+        let q = supabase
+          .from("barbers")
+          .select("*")
+          .in("id", barberIds)
+          .eq("is_active", true);
+        if (withLocation && state.selectedLocation) {
+          q = q.eq("location_id", state.selectedLocation.id);
+        }
+        return q;
+      };
+
+      let { data: barbers } = await buildQuery(true);
+
+      // Fall back without location filter if location-filtered result is empty
+      if ((!barbers || barbers.length === 0) && state.selectedLocation) {
+        const fallback = await buildQuery(false);
+        barbers = fallback.data;
       }
-
-      const { data: barbers } = await query;
 
       if (barbers && barbers.length === 1) {
         selectService(service);
@@ -156,17 +163,25 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
 
       if (mappings && mappings.length > 0) {
         const barberIds = mappings.map((m) => m.barber_id);
-        let query = supabase
-          .from("barbers")
-          .select("id")
-          .in("id", barberIds)
-          .eq("is_active", true);
 
-        if (state.selectedLocation) {
-          query = query.eq("location_id", state.selectedLocation.id);
+        const buildQuery = (withLocation: boolean) => {
+          let q = supabase
+            .from("barbers")
+            .select("id")
+            .in("id", barberIds)
+            .eq("is_active", true);
+          if (withLocation && state.selectedLocation) {
+            q = q.eq("location_id", state.selectedLocation.id);
+          }
+          return q;
+        };
+
+        let { data: barbers } = await buildQuery(true);
+
+        if ((!barbers || barbers.length === 0) && state.selectedLocation) {
+          const fallback = await buildQuery(false);
+          barbers = fallback.data;
         }
-
-        const { data: barbers } = await query;
 
         if (barbers && barbers.length === 1) {
           goToStep("service");
