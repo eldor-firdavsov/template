@@ -12,12 +12,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Fetch bookings with barber and service details
+  // Note: use explicit FK hint because bookings has two FKs to barbers
+  // (barber_id and responded_by) — PostgREST would fail with PGRST201 otherwise
   const { data: bookings, error } = await supabaseAdmin
     .from("bookings")
     .select(`
       id, barber_id, service_id, client_id, starts_at, ends_at,
       status, price_at_booking, created_at, cancelled_at, cancelled_by,
-      barbers(full_name, photo_url),
+      barbers!bookings_barber_id_fkey(full_name, photo_url),
       services(name, duration_minutes)
     `)
     .eq("client_id", client_id)
