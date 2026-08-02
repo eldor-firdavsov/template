@@ -138,6 +138,20 @@ export const uz = {
     no_show: "Kelmagan",
   },
 
+  barberPortal: {
+    title: "Barber Portali",
+    tagline: "Barcha bronlaringiz, mijozlaringiz va jadvalingiz — bir joyda.",
+    adminRole: "Admin",
+    barberRole: "Usta",
+    statsTitle: "Statistika va Tahlillar",
+    earnedRevenue: "Ishlangan Daromad",
+    totalBookings: "Jami Navbatlar",
+    noShowRate: "Kelmaganlar Ulushi",
+    cancelledBookings: "Bekor Qilinganlar",
+    expectedRevenue: "Kutilayotgan",
+    breakdownTitle: "Navbatlar Holati Bo'yicha Tahlil",
+  },
+
   // Display currency: UZS
   currency: "so'm",
 };

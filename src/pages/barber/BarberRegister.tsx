@@ -9,8 +9,26 @@ export const BarberRegister: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    async function checkLock() {
+      const { data } = await supabase
+        .from("barbers")
+        .select("id")
+        .eq("role", "admin")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setIsLocked(true);
+      }
+    }
+    checkLock();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +105,31 @@ export const BarberRegister: React.FC = () => {
   // Goal Gradient: show onboarding progress (they're on step 1 of 3)
   const steps = ["Hisob yaratish", "Sozlash", "Boshqaruv paneli"];
   const currentStep = 0;
+
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-bg flex flex-col justify-center px-4 py-12 max-w-md mx-auto relative">
+        <div className="text-center mb-6 animate-fade-in">
+          <div className="w-16 h-16 bg-accent/15 border border-accent/30 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Lock size={28} className="text-accent" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-primary tracking-tight">Ro'yxatdan o'tish yopiq</h1>
+          <p className="text-sm text-muted mt-2 leading-relaxed">
+            Sartaroshxona allaqachon ro'yxatdan o'tgan. Tizimga kirish uchun asosiy sartaroshingiz (admin) yaratib bergan hisobdan foydalaning.
+          </p>
+        </div>
+
+        <div className="bg-card rounded-2xl border border-border/50 p-6 space-y-4 shadow-sm text-center">
+          <Link
+            to="/barber/login"
+            className="w-full py-3.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl transition-all shadow-md shadow-accent/20 flex items-center justify-center gap-2"
+          >
+            Tizimga kirish (Login) →
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg flex flex-col justify-center px-4 py-12 max-w-md mx-auto relative">

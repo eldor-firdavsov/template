@@ -77,6 +77,8 @@ export const BarberOnboarding: React.FC = () => {
   const [shopName, setShopName] = useState("");
   const [address, setAddress] = useState("");
   const [shopPhone, setShopPhone] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(41.311081); // Default Tashkent coordinates
+  const [longitude, setLongitude] = useState<number | null>(69.240562);
 
   // Hours states
   const [startTime, setStartTime] = useState("09:00");
@@ -222,6 +224,8 @@ export const BarberOnboarding: React.FC = () => {
             shopName: shopName.trim(),
             address: address.trim(),
             shopPhone: formattedShopPhone,
+            latitude,
+            longitude,
             startTime,
             endTime,
             services: servicesPayload,
@@ -255,12 +259,16 @@ export const BarberOnboarding: React.FC = () => {
             name: shopName.trim(),
             address: address.trim(),
             phone: formattedShopPhone || null,
+            latitude: latitude,
+            longitude: longitude,
           }).eq("id", locId);
         } else {
           const { data: newLoc } = await supabase.from("locations").insert({
             name: shopName.trim(),
             address: address.trim(),
             phone: formattedShopPhone || null,
+            latitude: latitude,
+            longitude: longitude,
           }).select("id").single();
           if (newLoc) locId = newLoc.id;
         }
@@ -463,6 +471,74 @@ export const BarberOnboarding: React.FC = () => {
                     placeholder="masalan: Chilonzor shoh ko'chasi, 25-uy"
                     className="w-full bg-bg px-4 py-3.5 rounded-xl border border-white/10 text-text outline-none focus:border-accent text-sm transition-colors"
                   />
+                </div>
+
+                {/* Map Coordinates Picker */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+                      Xaritadagi joylashuv (Geolokatsiya)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.geolocation) {
+                          navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                              setLatitude(Number(pos.coords.latitude.toFixed(6)));
+                              setLongitude(Number(pos.coords.longitude.toFixed(6)));
+                            },
+                            (err) => {
+                              console.warn("Geolokatsiya olinmadi:", err);
+                            }
+                          );
+                        }
+                      }}
+                      className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles size={12} />
+                      Mening joylashuvimni aniqlash
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[10px] text-text-secondary font-medium block mb-1">Kenglik (Latitude)</span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={latitude ?? ""}
+                        onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : null)}
+                        placeholder="41.311081"
+                        className="w-full bg-bg px-3.5 py-2.5 rounded-xl border border-white/10 text-text outline-none focus:border-accent text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-text-secondary font-medium block mb-1">Uzunlik (Longitude)</span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={longitude ?? ""}
+                        onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : null)}
+                        placeholder="69.240562"
+                        className="w-full bg-bg px-3.5 py-2.5 rounded-xl border border-white/10 text-text outline-none focus:border-accent text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {latitude && longitude && (
+                    <div className="rounded-xl border border-white/10 overflow-hidden h-36 bg-surface relative flex items-center justify-center">
+                      <iframe
+                        title="Shop Location Map Preview"
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        src={`https://maps.google.com/maps?q=${latitude},${longitude}&z=15&output=embed`}
+                        className="w-full h-full opacity-90 hover:opacity-100 transition-opacity"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>

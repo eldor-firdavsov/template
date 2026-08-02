@@ -143,12 +143,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Subtract existing confirmed/pending bookings
       if (availableRanges.length > 0) {
         const dayBookings = barberBookings.filter(
-          (b: any) => new Date(b.starts_at).toISOString().substring(0, 10) === dateStr,
+          (b: any) => b.starts_at && b.starts_at.substring(0, 10) === dateStr,
         );
         for (const b of dayBookings) {
+          const bStart = new Date(b.starts_at);
+          const bEnd = new Date(b.ends_at);
+          const bStartStr = `${String(bStart.getUTCHours()).padStart(2, "0")}:${String(bStart.getUTCMinutes()).padStart(2, "0")}`;
+          const bEndStr = `${String(bEnd.getUTCHours()).padStart(2, "0")}:${String(bEnd.getUTCMinutes()).padStart(2, "0")}`;
           availableRanges = subtractTimeRanges(availableRanges, {
-            start: formatTime(new Date(b.starts_at)),
-            end: formatTime(new Date(b.ends_at)),
+            start: bStartStr,
+            end: bEndStr,
           });
         }
       }
@@ -206,10 +210,6 @@ function minutesToTime(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function formatTime(d: Date): string {
-  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
 function subtractTimeRanges(

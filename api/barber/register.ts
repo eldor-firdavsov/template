@@ -25,6 +25,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cleanEmail = email.trim().toLowerCase();
 
   try {
+    // Check if a main barber (admin) already exists in the system
+    const { data: existingAdmin } = await supabaseAdmin
+      .from("barbers")
+      .select("id")
+      .eq("role", "admin")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingAdmin) {
+      return res.status(403).json({
+        error: "Sartaroshxona allaqachon ro'yxatdan o'tgan. Tizimga kirish uchun asosiy sartaroshingiz (admin) yaratib bergan hisobdan foydalaning.",
+      });
+    }
+
     // Check if user already exists in auth
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existing = existingUsers?.users?.find(

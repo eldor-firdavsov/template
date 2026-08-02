@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useBarberAuth } from "../../context/BarberAuthContext";
 import { supabase } from "../../lib/supabase";
+import { uz } from "../../lib/uz";
 import { Lock, Mail, Scissors, Calendar, Users, TrendingUp } from "lucide-react";
 
 export const BarberLogin: React.FC = () => {
@@ -85,9 +86,9 @@ export const BarberLogin: React.FC = () => {
         <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-accent/30">
           <Scissors size={28} className="text-white" />
         </div>
-        <h1 className="text-3xl font-extrabold text-primary tracking-tight">Barber Portal</h1>
+        <h1 className="text-3xl font-extrabold text-primary tracking-tight">{uz.barberPortal.title}</h1>
         <p className="text-sm text-muted mt-2 leading-relaxed">
-          Barcha bronlaringiz, mijozlaringiz va<br />jadvalingiz — bir joyda.
+          {uz.barberPortal.tagline}
         </p>
 
         {/* Value proposition chips */}

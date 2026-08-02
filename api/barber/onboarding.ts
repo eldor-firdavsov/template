@@ -28,6 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     shopName,
     address,
     shopPhone,
+    latitude,
+    longitude,
     startTime,
     endTime,
     services,
@@ -38,6 +40,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     shopName?: string;
     address?: string;
     shopPhone?: string;
+    latitude?: number;
+    longitude?: number;
     startTime?: string;
     endTime?: string;
     services?: Array<{ name: string; category: string; duration: string | number; price: string | number }>;
@@ -99,6 +103,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: shopName.trim(),
           address: address.trim(),
           phone: shopPhone?.trim() || null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
           is_active: true,
         })
         .eq("id", existingLoc.id)
@@ -118,6 +124,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: shopName.trim(),
           address: address.trim(),
           phone: shopPhone?.trim() || null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
           is_active: true,
         })
         .select("id")

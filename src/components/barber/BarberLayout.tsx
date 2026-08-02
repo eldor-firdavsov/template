@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, Navigate, useLocation } from "react-route
 import { Calendar, Users, BarChart3, LogOut, Settings, Scissors, ChevronDown, X, Clock, Building, UserCog } from "lucide-react";
 import { useBarberAuth } from "../../context/BarberAuthContext";
 import { supabase } from "../../lib/supabase";
+import { uz } from "../../lib/uz";
 
 export const BarberLayout: React.FC = () => {
   const { user, barber, signOut, loading } = useBarberAuth();
@@ -189,9 +190,9 @@ export const BarberLayout: React.FC = () => {
               <Scissors size={18} />
             </div>
             <div>
-              <h1 className="font-extrabold text-base leading-tight">Barber Portal</h1>
+              <h1 className="font-extrabold text-base leading-tight">{uz.barberPortal.title}</h1>
               <p className="text-xs text-muted truncate max-w-[140px]">
-                {barber.full_name} • {isAdmin ? "Admin" : "Usta"}
+                {barber.full_name} • {isAdmin ? uz.barberPortal.adminRole : uz.barberPortal.barberRole}
               </p>
             </div>
           </div>
@@ -405,12 +406,12 @@ export const BarberLayout: React.FC = () => {
         <>
           {/* Backdrop */}
           <div
-            className="md:hidden fixed inset-0 bg-primary/40 backdrop-blur-md z-30 animate-fade-in"
+            className="md:hidden fixed inset-0 bg-primary/40 backdrop-blur-md z-50 animate-fade-in"
             onClick={() => setMoreOpen(false)}
           />
 
           {/* Sheet */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] border-t border-border/60 z-40 animate-slide-up shadow-2xl pb-[env(safe-area-inset-bottom,20px)]">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] border-t border-border/60 z-50 animate-slide-up shadow-2xl pb-[calc(env(safe-area-inset-bottom,20px)+70px)]">
             {/* Grab Handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-12 h-1.5 rounded-full bg-muted/30" />
@@ -429,7 +430,7 @@ export const BarberLayout: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 grid grid-cols-2 gap-2.5 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 grid grid-cols-2 gap-2.5 max-h-[55vh] overflow-y-auto">
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname.startsWith(item.path);

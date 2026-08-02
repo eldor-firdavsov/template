@@ -33,7 +33,17 @@ export function StepService({ selectedLocation, locationsCount = 1, onChangeLoca
         barbersQuery = barbersQuery.eq("location_id", selectedLocation.id);
       }
 
-      const { data: activeBarbers } = await barbersQuery;
+      let { data: activeBarbers } = await barbersQuery;
+
+      // Fallback: if location filter yielded no barbers, fallback to all active barbers
+      if ((!activeBarbers || activeBarbers.length === 0) && selectedLocation) {
+        const fallback = await supabase
+          .from("barbers")
+          .select("id")
+          .eq("is_active", true);
+        activeBarbers = fallback.data;
+      }
+
       const activeBarberIds = (activeBarbers || []).map((b) => b.id);
 
       // 2. Get valid service IDs mapped to active barbers
