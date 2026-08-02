@@ -32,6 +32,7 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | "none">("none");
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchIgnoreSwipe = useRef(false);
 
   const stepOrderMap: Record<string, number> = {
     location: 0,
@@ -74,6 +75,11 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!e.touches[0]) return;
+    const target = e.target as HTMLElement | null;
+    // Date strip / other horizontal scrollers must not trigger step swipe-back
+    touchIgnoreSwipe.current = Boolean(
+      target?.closest?.("[data-no-swipe], [data-horizontal-scroll]"),
+    );
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   };
@@ -82,9 +88,16 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
     if (touchStartX.current === null || touchStartY.current === null || !e.changedTouches[0]) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    const ignore = touchIgnoreSwipe.current;
 
-    // Check if horizontal swipe exceeds 50px and is greater than vertical movement
-    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+    touchStartX.current = null;
+    touchStartY.current = null;
+    touchIgnoreSwipe.current = false;
+
+    if (ignore) return;
+
+    // Horizontal swipe: require clear intent so date/time taps aren't aborted
+    if (Math.abs(deltaX) > 80 && Math.abs(deltaX) > Math.abs(deltaY) * 2) {
       if (deltaX > 0) {
         // Swipe right -> Go back to previous step
         if (state.step === "service" && locations.length > 1) goToStep("location");
@@ -100,8 +113,6 @@ export function ClientBookingApp({ initialStep }: { initialStep?: "bookings" }) 
         else if (state.step === "time" && state.selectedDate && state.selectedTime) goToStep("confirm");
       }
     }
-    touchStartX.current = null;
-    touchStartY.current = null;
   };
 
   // Set initial step only once on mount to prevent infinite render loop

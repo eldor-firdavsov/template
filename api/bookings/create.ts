@@ -117,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   for (const c of candidates) {
     const match = (bsData || []).find((bs: any) => bs.barber_id === c.id);
-    const duration = match?.custom_duration_minutes ?? service.duration_minutes;
+    const duration = Number(match?.custom_duration_minutes ?? service.duration_minutes) || 30;
     const endDt = new Date(startDt.getTime() + duration * 60 * 1000);
 
     const startHour = String(startDt.getUTCHours()).padStart(2, "0");
@@ -128,7 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const endMin = String(endDt.getUTCMinutes()).padStart(2, "0");
     const endTimeStr = `${endHour}:${endMin}:00`;
 
-    // 1. Check working hours
+    // 1. Check working hours (wall-clock times stored / compared as UTC)
     const whs = (whResult.data ?? []).filter((w: any) => w.barber_id === c.id);
     const effectiveWhs =
       whs.length > 0
@@ -136,7 +136,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : startWeekday >= 1 && startWeekday <= 6
         ? [{ barber_id: c.id, weekday: startWeekday, start_time: "09:00:00", end_time: "20:00:00" }]
         : [];
-    const isWorking = effectiveWhs.some((w: any) => w.start_time <= startTimeStr && w.end_time >= endTimeStr);
+    const isWorking = effectiveWhs.some((w: any) => {
+      const whStart = w.start_time.length === 5 ? `${w.start_time}:00` : w.start_time;
+      const whEnd = w.end_time.length === 5 ? `${w.end_time}:00` : w.end_time;
+      return whStart <= startTimeStr && whEnd >= endTimeStr;
+    });
     if (!isWorking) continue;
 
     // 2. Check time off

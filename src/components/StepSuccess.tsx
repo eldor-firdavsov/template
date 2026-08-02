@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Barber, Service } from "../lib/types";
+import { wallClockToIso } from "../lib/shopTime";
 import { uz } from "../lib/uz";
 import { MapPin, Sparkles } from "lucide-react";
 
@@ -58,7 +59,7 @@ export function StepSuccess({
   // Add to calendar URL (Google Calendar)
   const calendarUrl = (() => {
     try {
-      const start = new Date(`${date}T${time}:00Z`);
+      const start = new Date(wallClockToIso(date, time));
       const end = new Date(start.getTime() + service.duration_minutes * 60 * 1000);
       const fmt = (d: Date) =>
         d.toISOString().replace(/[-:]/g, "").replace(".000", "");

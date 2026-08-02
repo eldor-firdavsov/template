@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import type { Barber, Service } from "../lib/types";
 import { createBooking, ensureClient } from "../lib/api";
+import { wallClockToIso } from "../lib/shopTime";
 import { uz } from "../lib/uz";
 import { Check, Scissors, Clock, Calendar } from "lucide-react";
 
@@ -135,11 +136,11 @@ export function StepConfirm({
       let finalBarber = displayBarber;
 
       try {
-        const startsAt = new Date(`${date}T${time}:00Z`);
+        const startsAtIso = wallClockToIso(date, time);
         const result = await createBooking({
           service_id: service.id,
           barber_id: displayBarber ? displayBarber.id : null,
-          starts_at: startsAt.toISOString(),
+          starts_at: startsAtIso,
           client_id: resolvedClientId,
           client_note: note.trim() || undefined,
         });
@@ -167,7 +168,7 @@ export function StepConfirm({
         }
 
         const durationMinutes = service.duration_minutes || 30;
-        const startsAtIso = new Date(`${date}T${time}:00Z`).toISOString();
+        const startsAtIso = wallClockToIso(date, time);
         const endsAtIso = new Date(new Date(startsAtIso).getTime() + durationMinutes * 60 * 1000).toISOString();
 
         const { error: insErr } = await supabase

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import type { Barber, Service } from "../lib/types";
 import { fetchAvailableSlots } from "../lib/api";
 import { uz } from "../lib/uz";
@@ -23,8 +23,7 @@ function getNext14Days(): Date[] {
   const days: Date[] = [];
   const now = new Date();
   for (let i = 0; i < 14; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + i);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
     days.push(d);
   }
   return days;
@@ -44,16 +43,18 @@ function formatMonth(d: Date): string {
 const SCARCITY_THRESHOLD = 3;
 
 export function StepTime({ service, barber, onSelect, onBack }: Props) {
-  const days = getNext14Days();
+  const days = useMemo(() => getNext14Days(), []);
   const [selectedDay, setSelectedDay] = useState(0);
   const [slots, setSlots] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [autoSkippedToday, setAutoSkippedToday] = useState(false);
   const stripRef = useRef<HTMLDivElement>(null);
   const selectedBtnRef = useRef<HTMLButtonElement>(null);
 
   const loadSlots = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     const fromDate = formatDateStr(days[0]!);
     const toDate = formatDateStr(days[days.length - 1]!);
 
@@ -85,21 +86,32 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
         }
       }
 
+      // Ensure every visible day has an entry
+      for (const d of days) {
+        const key = formatDateStr(d);
+        if (!(key in cleanedData)) cleanedData[key] = [];
+      }
+
       setSlots(cleanedData);
 
       // Smart Defaults: auto-select first available day, announce if we skipped today
       const firstAvailableIndex = days.findIndex(
-        (d) => (cleanedData[formatDateStr(d)] ?? []).length > 0
+        (d) => (cleanedData[formatDateStr(d)] ?? []).length > 0,
       );
       if (firstAvailableIndex > 0) {
         setSelectedDay(firstAvailableIndex);
         setAutoSkippedToday(true);
+      } else if (firstAvailableIndex === 0) {
+        setSelectedDay(0);
+        setAutoSkippedToday(false);
       }
-    } catch {
-      console.error("Failed to load slots");
+    } catch (err) {
+      console.error("Failed to load slots", err);
+      setLoadError("Vaqtlarni yuklab bo'lmadi. Qayta urinib ko'ring.");
+      setSlots({});
     }
     setLoading(false);
-  }, [service.id, barber?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [service.id, barber?.id, days]);
 
   useEffect(() => {
     loadSlots();
@@ -118,10 +130,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
 
   const currentDay = days[selectedDay]!;
   const currentDateStr = formatDateStr(currentDay);
-
-  const rawDaySlots = slots[currentDateStr] ?? [];
-  // Only use real API slots — no fallback to avoid showing fake available times
-  const daySlots = rawDaySlots;
+  const daySlots = slots[currentDateStr] ?? [];
 
   // Loss Aversion: scarcity
   const isScarce = (dateStr: string) => {
@@ -138,7 +147,6 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
   const eveningSlots = daySlots.filter((s) => parseInt(s.split(":")[0]!) >= 17);
 
   const todayStr = formatDateStr(days[0]!);
-
 
   return (
     <div className="space-y-5">
@@ -162,7 +170,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
       </div>
 
       {/* Smart Defaults: notify when we auto-jumped past today */}
-      {autoSkippedToday && !loading && (
+      {autoSkippedToday && !loading && !loadError && (
         <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-warning/8 border border-warning/20 text-warning text-xs font-semibold animate-slide-up">
           <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -171,10 +179,12 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
         </div>
       )}
 
-      {/* Date strip */}
+      {/* Date strip — data-no-swipe prevents step swipe-back while scrolling days */}
       <div
         ref={stripRef}
-        className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none"
+        data-no-swipe
+        data-horizontal-scroll
+        className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none touch-pan-x"
       >
         {days.map((day, i) => {
           const ds = formatDateStr(day);
@@ -186,6 +196,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
           return (
             <button
               key={ds}
+              type="button"
               ref={isSelected ? selectedBtnRef : null}
               onClick={() => setSelectedDay(i)}
               className={`flex-shrink-0 flex flex-col items-center w-[60px] py-3 rounded-2xl transition-all relative ${
@@ -223,8 +234,8 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
                 </span>
               )}
 
-              {!hasSlots && !loading && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-2xl">
+              {!hasSlots && !loading && !loadError && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-2xl pointer-events-none">
                   <div className="w-10 h-[1px] bg-muted/25 rotate-45" />
                 </div>
               )}
@@ -234,7 +245,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
       </div>
 
       {/* Loss Aversion: scarcity banner for selected day */}
-      {!loading && isScarce(currentDateStr) && (
+      {!loading && !loadError && isScarce(currentDateStr) && (
         <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-danger/8 border border-danger/20 animate-slide-up">
           <svg className="w-3.5 h-3.5 text-danger shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -253,6 +264,17 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
               <Skeleton key={i} className="w-full h-11 rounded-2xl" />
             ))}
           </div>
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center justify-center h-40 bg-surface/50 rounded-2xl border border-dashed border-border p-6 text-center gap-3">
+          <div className="font-semibold text-muted text-sm">{loadError}</div>
+          <button
+            type="button"
+            onClick={loadSlots}
+            className="px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold active:scale-95 transition-all"
+          >
+            Qayta yuklash
+          </button>
         </div>
       ) : daySlots.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-40 bg-surface/50 rounded-2xl border border-dashed border-border p-6 text-center">
@@ -273,6 +295,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
                 {morningSlots.map((slot) => (
                   <button
                     key={slot}
+                    type="button"
                     onClick={() => onSelect(currentDateStr, slot)}
                     className="py-2.5 rounded-xl bg-surface border border-border/50 hover:border-accent hover:bg-accent/6 hover:shadow-sm active:bg-accent/10 active:scale-95 transition-all font-semibold text-sm"
                   >
@@ -291,6 +314,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
                 {afternoonSlots.map((slot) => (
                   <button
                     key={slot}
+                    type="button"
                     onClick={() => onSelect(currentDateStr, slot)}
                     className="py-2.5 rounded-xl bg-surface border border-border/50 hover:border-accent hover:bg-accent/6 hover:shadow-sm active:bg-accent/10 active:scale-95 transition-all font-semibold text-sm"
                   >
@@ -309,6 +333,7 @@ export function StepTime({ service, barber, onSelect, onBack }: Props) {
                 {eveningSlots.map((slot) => (
                   <button
                     key={slot}
+                    type="button"
                     onClick={() => onSelect(currentDateStr, slot)}
                     className="py-2.5 rounded-xl bg-surface border border-border/50 hover:border-accent hover:bg-accent/6 hover:shadow-sm active:bg-accent/10 active:scale-95 transition-all font-semibold text-sm"
                   >

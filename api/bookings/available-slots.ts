@@ -85,10 +85,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Fixed 30-minute slot granularity
   const SLOT_GRANULARITY = 30;
 
-  // Timezone offset for Uzbekistan (UTC+5). Working hours are stored in local time.
-  const TZ_OFFSET_MINUTES = 5 * 60;
-
-  // Compute slots per barber
+  // Bookings store shop wall-clock time as UTC (09:00 local → …T09:00:00Z).
+  // Slot math must use UTC date/weekday/hours so they match the picker labels.
   const mergedSlots = new Map<string, string[]>();
   const fromDateObj = new Date(from_date + "T00:00:00Z");
   const toDateObj = new Date(to_date + "T00:00:00Z");
@@ -98,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const match = bsData.find(
       (bs: any) => bs.service_id === service_id && bs.barber_id === bid,
     );
-    const duration = match?.custom_duration_minutes ?? service.duration_minutes;
+    const duration = Number(match?.custom_duration_minutes ?? service.duration_minutes) || 30;
 
     let barberWH = (whResult.data ?? []).filter((wh: any) => wh.barber_id === bid);
     if (barberWH.length === 0) {
@@ -117,11 +115,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const current = new Date(fromDateObj);
     while (current <= toDateObj) {
-      // Shift to local time (UTC+5) to get the correct weekday and date string
-      const localMs = current.getTime() + TZ_OFFSET_MINUTES * 60 * 1000;
-      const localDate = new Date(localMs);
-      const weekday = localDate.getUTCDay();
-      const dateStr = localDate.toISOString().substring(0, 10);
+      const weekday = current.getUTCDay();
+      const dateStr = current.toISOString().substring(0, 10);
 
       const dayHours = barberWH.filter((wh: any) => wh.weekday === weekday);
       if (dayHours.length === 0) {
@@ -146,21 +141,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // Subtract existing confirmed/pending bookings
-      // Compare bookings using local date (UTC+5 shifted)
+      // Subtract existing confirmed/pending bookings (wall-clock stored as UTC)
       if (availableRanges.length > 0) {
-        const dayBookings = barberBookings.filter((b: any) => {
-          if (!b.starts_at) return false;
-          const bLocalMs = new Date(b.starts_at).getTime() + TZ_OFFSET_MINUTES * 60 * 1000;
-          const bLocalDateStr = new Date(bLocalMs).toISOString().substring(0, 10);
-          return bLocalDateStr === dateStr;
-        });
+        const dayBookings = barberBookings.filter(
+          (b: any) => b.starts_at && b.starts_at.substring(0, 10) === dateStr,
+        );
         for (const b of dayBookings) {
-          // Convert UTC booking times to local (UTC+5) for comparison with working hours
-          const bStartLocal = new Date(new Date(b.starts_at).getTime() + TZ_OFFSET_MINUTES * 60 * 1000);
-          const bEndLocal = new Date(new Date(b.ends_at).getTime() + TZ_OFFSET_MINUTES * 60 * 1000);
-          const bStartStr = `${String(bStartLocal.getUTCHours()).padStart(2, "0")}:${String(bStartLocal.getUTCMinutes()).padStart(2, "0")}`;
-          const bEndStr = `${String(bEndLocal.getUTCHours()).padStart(2, "0")}:${String(bEndLocal.getUTCMinutes()).padStart(2, "0")}`;
+          const bStart = new Date(b.starts_at);
+          const bEnd = new Date(b.ends_at);
+          const bStartStr = `${String(bStart.getUTCHours()).padStart(2, "0")}:${String(bStart.getUTCMinutes()).padStart(2, "0")}`;
+          const bEndStr = `${String(bEnd.getUTCHours()).padStart(2, "0")}:${String(bEnd.getUTCMinutes()).padStart(2, "0")}`;
           availableRanges = subtractTimeRanges(availableRanges, {
             start: bStartStr,
             end: bEndStr,
