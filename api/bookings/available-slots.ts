@@ -89,11 +89,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mergedSlots = new Map<string, string[]>();
   const fromDateObj = new Date(from_date + "T00:00:00Z");
   const toDateObj = new Date(to_date + "T00:00:00Z");
-  const nowIsoStr = new Date().toISOString();
-  const todayDateStr = nowIsoStr.substring(0, 10);
-  const nowHour = parseInt(nowIsoStr.substring(11, 13), 10);
-  const nowMin = parseInt(nowIsoStr.substring(14, 16), 10);
-  const nowInMinutes = nowHour * 60 + nowMin;
 
   for (const bid of barberIds) {
     const bsData = bsResult.data ?? [];
@@ -159,15 +154,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Generate slots using fixed 30-minute granularity
+      // Note: past-slot filtering is done client-side using local time (StepTime.tsx)
       for (const range of availableRanges) {
         let slotStart = Math.ceil(timeToMinutes(range.start) / SLOT_GRANULARITY) * SLOT_GRANULARITY;
         const rangeEnd = timeToMinutes(range.end);
 
         while (slotStart + duration <= rangeEnd) {
-          if (dateStr < todayDateStr || (dateStr === todayDateStr && slotStart <= nowInMinutes)) {
-            slotStart += SLOT_GRANULARITY;
-            continue;
-          }
           const slotStr = minutesToTime(slotStart);
           if (!mergedSlots.has(dateStr)) mergedSlots.set(dateStr, []);
           const slots = mergedSlots.get(dateStr)!;
